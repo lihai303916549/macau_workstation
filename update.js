@@ -141,13 +141,14 @@ function judge(pred, draw, getNumberZodiac) {
     period: d.period, numbers: d.numbers, special: d.special, openTime: d.openTime,
   }));
   const result = api.compositePredict(dataForPredict);
-  const nextNum = parseInt(latest.period.slice(4), 10) + 1;
-  let nextYear = parseInt(latest.period.slice(0, 4), 10);
-  let nn = nextNum;
-  // 每年期数 = 该年阳历天数（每天一期，无休市）：平年365，闰年366
-  const daysInYear = y => ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 366 : 365;
-  while (nn > daysInYear(nextYear)) { nn -= daysInYear(nextYear); nextYear += 1; }
-  const nextPeriod = nextYear + '' + String(nn).padStart(3, '0');
+  // 期号 = 开奖日期在当年的第几天（实测验证：2025-12-31→2025365，2026-01-01→2026001）
+  const periodOfDate = d => {
+    const y = d.getUTCFullYear();
+    const doy = Math.floor((d.getTime() - Date.UTC(y, 0, 1)) / 86400000) + 1;
+    return y + '' + String(doy).padStart(3, '0');
+  };
+  const nextDrawDay = new Date(Date.parse(latest.date + 'T00:00:00Z') + 86400000);
+  const nextPeriod = periodOfDate(nextDrawDay);
 
   const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
   fs.writeFileSync(PRED_PATH, JSON.stringify({
