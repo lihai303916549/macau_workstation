@@ -109,25 +109,35 @@ function judge(pred, draw, getNumberZodiac) {
   log('战绩末期 :', lastRec ? lastRec.period : '(空)');
   log('存档预测 :', pred.next_period, '| 生肖', pred.zodiac);
 
-  // 1) 判定：把存档预测对应的那一期补进战绩
+  // 1) 补录所有缺失的期
+  // 做法：用「该期之前的真实历史」重新跑一遍算法生成预测，再判定命中。
+  // 好处：即便 Actions 连续跳过几天，中间几期也能完整补回，且判定与当时一致（算法是确定性的）。
+  const FIRST_PERIOD = '2026253';   // 战绩起始期（用户要求：从 2026253 期开始记）
+  const missing = draws
+    .filter(d => !history.some(h => h.period === d.period))
+    .filter(d => lastRec ? (d.period > lastRec.period) : (d.period >= FIRST_PERIOD))
+    .sort((a, b) => a.openTime.localeCompare(b.openTime))
+    .slice(0, 5);   // 最多补 5 期，防异常数据把战绩撑爆
+
   let changed = false;
-  if (pred.next_period && latest.period >= pred.next_period) {
-    const target = draws.find(d => d.period === pred.next_period);
-    if (target && !(history.some(h => h.period === target.period))) {
-      const { codeHit, zodiacHit } = judge(pred, target, api.getNumberZodiac);
-      history.push({
-        period: target.period,
-        actual_numbers: target.numbers,
-        actual_special: target.special,
-        code_hit: codeHit,
-        zodiac_hit: zodiacHit,
-      });
-      log('✅ 补录', target.period, '→ 23码', codeHit ? '√' : '×', '| 平特肖', zodiacHit ? '√' : '×');
-      changed = true;
-    }
-  } else {
-    log('（暂无新开奖，战绩不用补录）');
+  for (const d of missing) {
+    const before = draws.filter(x => x.openTime < d.openTime);
+    if (before.length < 30) continue;   // 历史太少，算法不可靠，跳过
+    const p = api.compositePredict(before.map(x => ({
+      period: x.period, numbers: x.numbers, special: x.special, openTime: x.openTime,
+    })));
+    const { codeHit, zodiacHit } = judge({ codes_23: p.codes, zodiac: p.zodiac }, d, api.getNumberZodiac);
+    history.push({
+      period: d.period,
+      actual_numbers: d.numbers,
+      actual_special: d.special,
+      code_hit: codeHit,
+      zodiac_hit: zodiacHit,
+    });
+    log('✅ 补录', d.period, '→ 23码', codeHit ? '√' : '×', '| 平特肖', zodiacHit ? '√' : '×', '(按当时历史重算)');
+    changed = true;
   }
+  if (!missing.length) log('（暂无新开奖，战绩不用补录）');
 
   // 2) 写 record.json
   const total = history.length;
