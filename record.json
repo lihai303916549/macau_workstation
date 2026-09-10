@@ -1,77 +1,14 @@
 {
-  "total": 5,
-  "code_win": 5,
-  "zodiac_win": 0,
+  "total": 3,
+  "code_win": 2,
+  "zodiac_win": 2,
   "history": [
     {
-      "period": "2026248",
-      "actual_numbers": [
-        43,
-        26,
-        49,
-        39,
-        14,
-        27
-      ],
-      "actual_special": 20,
-      "code_hit": 1,
-      "zodiac_hit": 0
-    },
-    {
-      "period": "2026249",
-      "actual_numbers": [
-        41,
-        22,
-        13,
-        36,
-        26,
-        29
-      ],
-      "actual_special": 23,
-      "code_hit": 1,
-      "zodiac_hit": 0
-    },
-    {
-      "period": "2026251",
-      "actual_numbers": [
-        9,
-        6,
-        11,
-        25,
-        8,
-        45
-      ],
-      "actual_special": 30,
-      "code_hit": 1,
-      "zodiac_hit": 0
-    },
-    {
-      "period": "2026252",
-      "actual_numbers": [
-        33,
-        41,
-        43,
-        13,
-        6,
-        48
-      ],
-      "actual_special": 22,
-      "code_hit": 1,
-      "zodiac_hit": 0
-    },
-    {
       "period": "2026253",
-      "actual_numbers": [
-        5,
-        35,
-        15,
-        28,
-        13,
-        49
-      ],
+      "actual_numbers": [5, 35, 15, 28, 13, 49],
       "actual_special": 16,
       "code_hit": 1,
-      "zodiac_hit": 0
+      "zodiac_hit": 1
     }
   ]
 }
