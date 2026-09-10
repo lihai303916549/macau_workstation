@@ -45,4 +45,4 @@ jobs:
           COS_SECRET_KEY: ${{ secrets.COS_SECRET_KEY }}
         run: |
           python3 -m pip install -q cos-python-sdk-v5
-          python3 cos_sync.py --dir . update.js,cos_sync.py
+          python3 cos_sync.py --dir vercel_deploy update.js,cos_sync.py
