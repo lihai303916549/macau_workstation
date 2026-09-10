@@ -124,6 +124,7 @@ h1 {
   <div style="text-align:center; margin-bottom:20px;" data-page-node-id="jzDSZKfm69hsV1Wuy76MqN">
     <div style="display:flex; gap:14px; align-items:center; justify-content:center; flex-wrap:wrap; margin-bottom:8px;">
       <button onclick="forceUpdate()" id="update-btn" style="padding:6px 16px; border:1px solid var(--accent); background:var(--card); color:var(--accent); border-radius:6px; cursor:pointer; font-size:13px;">🔄 立即更新</button>
+      <span id="now-date" style="font-size:13px; color:var(--text);">—</span>
       <span id="countdown" style="font-size:13px; color:var(--text-muted); font-variant-numeric:tabular-nums;">⏰ 计算中...</span>
     </div>
     <span id="last-update" style="font-size:12px;color:var(--text-muted);" data-page-node-id="djgGqsdki6UKeDsTsbX1J6"></span>
@@ -1124,7 +1125,15 @@ function offlineNextPeriod() {
 }
 
 
+// 当前日期（澳门时间 UTC+8），如：2026年9月11日 星期五
+const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+function formatMacauDate() {
+  const d = new Date(Date.now() + UTC8_OFFSET_MS);
+  return d.getUTCFullYear() + '年' + (d.getUTCMonth() + 1) + '月' + d.getUTCDate() + '日 ' + WEEKDAYS[d.getUTCDay()];
+}
+
 function updateCountdown() {
+  setText('now-date', formatMacauDate());
   const el = document.getElementById('countdown');
   if (!el) return;
   const diff = nextDrawDate().getTime() - Date.now();
