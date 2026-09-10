@@ -122,8 +122,10 @@ h1 {
   <h1 data-page-node-id="orxnJiAvjqVVHEP7hm1iSe">🎰 六子 — 澳门Mark Six 预测工作台</h1>
   <p class="subtitle" data-page-node-id="CEHUEeGWYZ08iuPUHhxc81">多算法融合预测 · 动态实时更新 · 数据驱动决策</p>
   <div style="text-align:center; margin-bottom:20px;" data-page-node-id="jzDSZKfm69hsV1Wuy76MqN">
-    <button onclick="forceUpdate()" id="update-btn" style="padding:6px 16px; border:1px solid var(--accent); background:var(--card); color:var(--accent); border-radius:6px; cursor:pointer; font-size:13px; margin-bottom:8px;">🔄 立即更新</button>
-    <br>
+    <div style="display:flex; gap:14px; align-items:center; justify-content:center; flex-wrap:wrap; margin-bottom:8px;">
+      <button onclick="forceUpdate()" id="update-btn" style="padding:6px 16px; border:1px solid var(--accent); background:var(--card); color:var(--accent); border-radius:6px; cursor:pointer; font-size:13px;">🔄 立即更新</button>
+      <span id="countdown" style="font-size:13px; color:var(--text-muted); font-variant-numeric:tabular-nums;">⏰ 计算中...</span>
+    </div>
     <span id="last-update" style="font-size:12px;color:var(--text-muted);" data-page-node-id="djgGqsdki6UKeDsTsbX1J6"></span>
   </div>
   <div class="grid" data-page-node-id="HWmw2nX1A0Zr5u7FgcEIjK">
@@ -784,6 +786,7 @@ async function init() {
     const nextPeriod = getNextPeriod(allData);
     compositeResult = compositePredict(allData);
     renderComposite(compositeResult, nextPeriod);
+    currentNextPeriod = nextPeriod;
     setText('last-update', '数据截至 ' + lastPeriod + ' 期 · ' + new Date().toLocaleString('zh-CN') + ' · 数据源：' + fetched.source);
   } catch (e) {
     document.getElementById('progress-text').textContent = '加载失败: ' + e.message;
@@ -806,6 +809,7 @@ function forceUpdate() {
     const nextPeriod = getNextPeriod(allData);
     compositeResult = compositePredict(allData);
     renderComposite(compositeResult, nextPeriod);
+    currentNextPeriod = nextPeriod;
     setText('last-update', '数据截至 ' + lastPeriod + ' 期 · ' + new Date().toLocaleString('zh-CN') + ' · 数据源：' + fetched.source);
     btn.textContent = '🔄 立即更新';
     btn.disabled = false;
@@ -814,6 +818,51 @@ function forceUpdate() {
     setTimeout(() => { btn.textContent = '🔄 立即更新'; btn.disabled = false; }, 2000);
   });
 }
+
+// ===== 开奖倒计时 =====
+// 澳门 Mark Six 每天一期，开奖时刻固定 21:32:32
+const DRAW_H = 21, DRAW_M = 32, DRAW_S = 32;
+const EMBEDDED_LAST_DATE = '2026-09-10';   // EMBEDDED_DATA 最后一期的开奖日期
+let currentNextPeriod = null;              // 由 init/forceUpdate 实时算出，离线时用下方推算兜底
+
+function nextDrawDate() {
+  const now = new Date();
+  const t = new Date(now.getFullYear(), now.getMonth(), now.getDate(), DRAW_H, DRAW_M, DRAW_S);
+  if (now.getTime() >= t.getTime()) t.setDate(t.getDate() + 1);
+  return t;
+}
+
+// 离线兜底：用「内嵌最后一期 + 相隔天数」推算期号
+function offlineNextPeriod() {
+  try {
+    const lastPeriod = EMBEDDED_DATA[EMBEDDED_DATA.length - 1][0];
+    const lastNum = parseInt(lastPeriod.slice(4), 10);
+    const nd = nextDrawDate();
+    const d0 = new Date(EMBEDDED_LAST_DATE + 'T00:00:00');
+    const d1 = new Date(nd.getFullYear(), nd.getMonth(), nd.getDate());
+    const days = Math.round((d1 - d0) / 86400000);
+    return String(lastNum + days);
+  } catch (e) { return '下期'; }
+}
+
+function updateCountdown() {
+  const el = document.getElementById('countdown');
+  if (!el) return;
+  const diff = nextDrawDate().getTime() - new Date().getTime();
+  const period = currentNextPeriod || offlineNextPeriod();
+  if (diff <= 0) {
+    el.innerHTML = '🎯 第 <b>' + period + '</b> 期开奖中...';
+    return;
+  }
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  el.innerHTML = '⏰ 距 <b>' + period + '</b> 期开奖 <b style="color:var(--accent);">' +
+    pad2(h) + ':' + pad2(m) + ':' + pad2(s) + '</b>';
+}
+
+setInterval(updateCountdown, 1000);
+updateCountdown();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
