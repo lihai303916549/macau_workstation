@@ -1095,10 +1095,16 @@ function forceUpdate() {
 // ===== 开奖倒计时 =====
 // 澳门 Mark Six 每天一期，开奖时刻固定 21:32:32（澳门/北京时间 UTC+8）
 const DRAW_H = 21, DRAW_M = 32, DRAW_S = 32;
-// 每年期数 = 该年阳历天数（每天一期，无休市）：平年365，闰年366
-function daysInYear(y) {
-  return ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 366 : 365;
+// 实测验证：期号 = 该日期在当年的第几天
+//   2023-12-31 → 2023365（平年）  2024-12-31 → 2024366（闰年）
+//   2025-12-31 → 2025365          2026-01-01 → 2026001
+//   2023-01-04 未开奖，但期号仍按阳历编，故直接算「年内第几天」最准
+function periodOfDate(date) {
+  const y = date.getUTCFullYear();
+  const doy = Math.floor((date.getTime() - Date.UTC(y, 0, 1)) / 86400000) + 1;
+  return y + '' + String(doy).padStart(3, '0');
 }
+
 let currentNextPeriod = null;   // 由 init/forceUpdate 实时算出；未算出时用 offlineNextPeriod 兜底
 
 // 统一按 UTC+8 计算，避免用户设备时区导致倒计时偏差
@@ -1110,20 +1116,13 @@ function nextDrawDate() {
   return new Date(t);
 }
 
-// 离线兜底：日期直接取自内嵌数据末条，无需额外维护常量
+// 离线兜底：直接用下次开奖日期算期号，不依赖内嵌数据
 function offlineNextPeriod() {
   try {
-    const last = EMBEDDED_DATA[EMBEDDED_DATA.length - 1];
-    let year = parseInt(last[0].slice(0, 4), 10);
-    let num = parseInt(last[0].slice(4), 10);
-    const nd = nextDrawDate();
-    const d0 = new Date(last[1] + 'T00:00:00Z');
-    const d1 = new Date(Date.UTC(nd.getUTCFullYear(), nd.getUTCMonth(), nd.getUTCDate()));
-    num += Math.round((d1 - d0) / 86400000);
-    while (num > daysInYear(year)) { num -= daysInYear(year); year += 1; }
-    return year + '' + String(num).padStart(3, '0');
+    return periodOfDate(nextDrawDate());
   } catch (e) { return '下期'; }
 }
+
 
 function updateCountdown() {
   const el = document.getElementById('countdown');
