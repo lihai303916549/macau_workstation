@@ -39,8 +39,9 @@ def upload_file(c, bucket, local_path, key, acl="public-read"):
     ext = os.path.splitext(local_path)[1].lower()
     ct = CTYPES.get(ext, "application/octet-stream")
     with open(local_path, "rb") as f:
-        c.put_object(Bucket=bucket, Body=f, Key=key, ContentType=ct, ACL=acl)
-    print(f"  ✅ {key}  ({ct})")
+        c.put_object(Bucket=bucket, Body=f, Key=key, ContentType=ct,
+                     ACL=acl, ContentDisposition="inline")
+    print(f"  ✅ {key}  ({ct}, inline)")
 
 
 def upload(secret_id, secret_key, src, key="index.html",
