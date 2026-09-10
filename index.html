@@ -123,7 +123,7 @@ h1 {
   <p class="subtitle" data-page-node-id="CEHUEeGWYZ08iuPUHhxc81">多算法融合预测 · 动态实时更新 · 数据驱动决策</p>
   <div style="text-align:center; margin-bottom:20px;" data-page-node-id="jzDSZKfm69hsV1Wuy76MqN">
     <div style="display:flex; gap:14px; align-items:center; justify-content:center; flex-wrap:wrap; margin-bottom:8px;">
-      <button onclick="forceUpdate()" id="update-btn" style="padding:6px 16px; border:1px solid var(--accent); background:var(--card); color:var(--accent); border-radius:6px; cursor:pointer; font-size:13px;">🔄 立即更新</button>
+      <button onclick="forceUpdate()" id="update-btn" style="padding:6px 16px; border:1px solid var(--accent); background:var(--card); color:var(--accent); border-radius:6px; cursor:pointer; font-size:13px;">🔄 强制刷新</button>
       <span id="now-date" style="font-size:13px; color:var(--text);">—</span>
       <span id="countdown" style="font-size:13px; color:var(--text-muted); font-variant-numeric:tabular-nums;">⏰ 计算中...</span>
     </div>
@@ -1067,29 +1067,37 @@ async function init() {
   }
 }
 
+// 「强制刷新」：清掉本地缓存并重新加载页面，用于拉取云端已部署的最新版本。
+// 注意：这里不再去请求开奖接口 —— 接口无 CORS 头，浏览器取不到，数据一律来自内置。
 function forceUpdate() {
   const btn = document.getElementById('update-btn');
   if (!btn) return;
-  btn.textContent = '⏳ 更新中...';
+  btn.textContent = '⏳ 刷新中...';
   btn.disabled = true;
-  if ('serviceWorker' in navigator && 'caches' in window) {
-    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
-  }
-  allData = [];
-  compositeResult = null;
-  fetchData().then(fetched => {
-    allData = fetched.data;
-    const lastPeriod = allData[allData.length-1].period;
-    const nextPeriod = getNextPeriod(allData);
-    compositeResult = compositePredict(allData);
-    renderComposite(compositeResult, nextPeriod);
-    currentNextPeriod = nextPeriod;
-    setText('last-update', '数据截至 ' + lastPeriod + ' 期 · ' + new Date().toLocaleString('zh-CN') + ' · 数据源：' + fetched.source);
-    btn.textContent = '🔄 立即更新';
-    btn.disabled = false;
-  }).catch(e => {
-    btn.textContent = '❌ 更新失败';
-    setTimeout(() => { btn.textContent = '🔄 立即更新'; btn.disabled = false; }, 2000);
+
+  // 清 Service Worker 缓存
+  var clearCaches = (window.caches && caches.keys)
+    ? caches.keys().then(function (keys) {
+        return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+      }).catch(function () {})
+    : Promise.resolve();
+
+  // 注销旧 Service Worker，重新加载时会拉新版
+  var unregister = (navigator.serviceWorker && navigator.serviceWorker.getRegistrations)
+    ? navigator.serviceWorker.getRegistrations().then(function (regs) {
+        return Promise.all(regs.map(function (r) { return r.unregister(); }));
+      }).catch(function () {})
+    : Promise.resolve();
+
+  Promise.all([clearCaches, unregister]).then(function () {
+    if (location.protocol === 'file:') {
+      location.reload();                 // 本地打开时直接重载
+      return;
+    }
+    // 加时间戳，绕开浏览器磁盘缓存，确保拿到云端最新部署
+    var url = location.href.split('#')[0];
+    url += (url.indexOf('?') === -1 ? '?' : '&') + '_t=' + Date.now();
+    location.replace(url);
   });
 }
 
