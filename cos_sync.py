@@ -64,10 +64,13 @@ def sync_dir(secret_id, secret_key, local_dir, bucket=DEFAULT_BUCKET,
 
 
 def main():
-    secret_id = os.environ["COS_SECRET_ID"]
-    secret_key = os.environ["COS_SECRET_KEY"]
+    secret_id = os.environ.get("COS_SECRET_ID")
+    secret_key = os.environ.get("COS_SECRET_KEY")
     region = os.environ.get("COS_REGION", DEFAULT_REGION)
     bucket = os.environ.get("COS_BUCKET", DEFAULT_BUCKET)
+    if not secret_id or not secret_key:
+        print("⚠️ 未设置 COS_SECRET_ID / COS_SECRET_KEY，跳过 COS 同步（不影响网页自动更新）")
+        return
 
     if len(sys.argv) > 1 and sys.argv[1] == "--dir":
         d = sys.argv[2]
