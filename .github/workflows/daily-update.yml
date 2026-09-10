@@ -1,0 +1,38 @@
+name: 老六每日自动更新
+
+on:
+  # 每天 22:10（北京时间）= 14:10 UTC，开奖（21:32）之后跑
+  schedule:
+    - cron: '10 14 * * *'
+  # 允许在 GitHub 网页上手动点「Run workflow」立即跑一次
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 拉取仓库
+        uses: actions/checkout@v4
+
+      - name: 准备 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 运行自动更新
+        run: node update.js
+
+      - name: 提交并推送
+        run: |
+          git config user.name "laoliu-bot"
+          git config user.email "laoliu-bot@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "无变化，跳过提交"
+          else
+            git commit -m "自动更新 $(date -u +'%Y-%m-%d %H:%M') UTC"
+            git push
+          fi
