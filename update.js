@@ -144,7 +144,9 @@ function judge(pred, draw, getNumberZodiac) {
   const nextNum = parseInt(latest.period.slice(4), 10) + 1;
   let nextYear = parseInt(latest.period.slice(0, 4), 10);
   let nn = nextNum;
-  while (nn > 366) { nn -= 366; nextYear += 1; }
+  // 每年期数 = 该年阳历天数（每天一期，无休市）：平年365，闰年366
+  const daysInYear = y => ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 366 : 365;
+  while (nn > daysInYear(nextYear)) { nn -= daysInYear(nextYear); nextYear += 1; }
   const nextPeriod = nextYear + '' + String(nn).padStart(3, '0');
 
   const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
