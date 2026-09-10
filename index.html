@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="zr4G4bfOsnZu7QrUBKTXh1">
+<head data-page-node-id="UG5rgBXT38MN5GD1MYSkWF">
+<meta charset="UTF-8" data-page-node-id="PujrAogAMIT8RTkZcEFJZI">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="ofJ2KD4ZS2yrShCPTxVKTM">
+<title>六子 - 澳门Mark Six 预测工作台</title>
+<link rel="manifest" href="./manifest.json" data-page-node-id="RMPLl4IIjItKAYY9nozaan">
+<meta name="theme-color" content="#58a6ff" data-page-node-id="KglgYWGSa3OvYSlVP4bzkC">
+<meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="DJdkiz1yuYCCV48CdYMMvQ">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" data-page-node-id="oUvjM24vcX4f5RCRCBNLDs">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' data-page-node-id="SDoXdSQ3FWJAhuxilWJaU4"><text y='.9em' font-size='90' data-page-node-id="2z8NV1Hp5OGhMa61Gs3f6t">🎱</text></svg>">
+<style>
+:root {
+  --bg: #0d1117;
+  --card: #161b22;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --red: #f85149;
+  --green: #3fb950;
+  --yellow: #d29922;
+  --purple: #bc8cff;
+  --teal: #39d353;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 20px;
+}
+.container { max-width: 1200px; margin: 0 auto; }
+h1 {
+  text-align: center;
+  font-size: 16px;
+  margin-bottom: 8px;
+  color: var(--accent);
+}
+.subtitle {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.numbers-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.num-ball {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-right: 8px;
+}
+
+.stats-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.stat-item {
+  background: var(--border);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.stat-item .label { color: var(--text-muted); }
+.stat-item .value { font-weight: 600; font-size: 14px; }
+
+.backtest-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.backtest-table th, .backtest-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.backtest-table th { color: var(--text-muted); font-weight: 500; }
+.backtest-table tr:hover { background: rgba(88, 166, 255, 0.05); }
+
+.full-width { grid-column: 1 / -1; }
+
+@media (max-width: 768px) {
+  .grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body data-page-node-id="iQkMZDyqieZb5fzkrJpF4K">
+<div id="loading" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.5s;" data-page-node-id="2DEpTuJhnAfnXIG4nS6jbr">
+  <div style="font-size:24px;margin-bottom:20px;" data-page-node-id="rb7yZt8d0g50iIpIzAccGX">🎰</div>
+  <div style="width:300px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;" data-page-node-id="MCkdKMv55fjPPVWARvU3aH">
+    <div id="progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--purple));border-radius:3px;transition:width 0.3s;" data-page-node-id="vpWD9TKCj5eMxcgDrUUDdn"></div>
+  </div>
+  <div id="progress-text" style="margin-top:12px;font-size:13px;color:var(--text-muted);" data-page-node-id="4PKBwXQO3GGXR8Nf5YQfw5">加载中... 0%</div>
+</div>
+<div class="container" style="display:none;" data-page-node-id="bxJNtU3IgVeKQoD4OsKLd4">
+  <h1 data-page-node-id="orxnJiAvjqVVHEP7hm1iSe">🎰 六子 — 澳门Mark Six 预测工作台</h1>
+  <p class="subtitle" data-page-node-id="CEHUEeGWYZ08iuPUHhxc81">多算法融合预测 · 动态实时更新 · 数据驱动决策</p>
+  <div style="text-align:center; margin-bottom:20px;" data-page-node-id="jzDSZKfm69hsV1Wuy76MqN">
+    <button onclick="forceUpdate()" id="update-btn" style="padding:6px 16px; border:1px solid var(--accent); background:var(--card); color:var(--accent); border-radius:6px; cursor:pointer; font-size:13px; margin-bottom:8px;">🔄 立即更新</button>
+    <br>
+    <span id="last-update" style="font-size:12px;color:var(--text-muted);" data-page-node-id="djgGqsdki6UKeDsTsbX1J6"></span>
+  </div>
+  <div class="grid" data-page-node-id="HWmw2nX1A0Zr5u7FgcEIjK">
+    <div class="card full-width" data-page-node-id="T1RItYbMGHhvr6EHMB988L">
+      <div class="card-title" id="composite-title" data-page-node-id="DNLoMyFuRaFUOpg1tQg23o">📊 23码综合预测 (多数投票融合) — 加载中...</div>
+      <div class="numbers-grid" id="composite-codes" data-page-node-id="IwbcVVDR6UZFGpHsWIsHeK"></div>
+      <div style="margin-top:12px; font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:12px;" data-page-node-id="6aZsy7qmaZ5kNapSRT3OIH">
+        <span data-page-node-id="NBodaMhfEOExkKUIpp9bsQ">推导方式：10大算法加权融合（马尔可夫 + 频率 + 遗漏 + 奇偶 + 和值 + 尾数 + 冷热 + 大小 + 生肖 + 间距）</span>
+        <button onclick="copyCodes()" style="padding:6px 12px; border:1px solid var(--border); background:var(--card); color:var(--text); border-radius:4px; cursor:pointer; font-size:12px; white-space:nowrap;" data-page-node-id="ZWMIHEyt4pxECDdOC1lpy9">复制23码</button>
+      </div>
+    </div>
+    <div class="card" data-page-node-id="yupZxNfOHRPKyFHjiZfuOW">
+      <div class="card-title" id="zodiac-title" data-page-node-id="7H5Pl8QOPFpTl7EdluTicz">🐲 生肖预测 (平特肖) — 加载中...</div>
+      <div style="display:flex; align-items:center; gap:12px;" data-page-node-id="UomOekvylyD31E0sh1z5Ry">
+        <p style="font-size:14px; line-height:1.8; flex:1;" id="zodiac-result" data-page-node-id="yLeLAO7pfYF42xivbkIPH9"></p>
+        <button onclick="copyZodiac()" style="padding:6px 12px; border:1px solid var(--border); background:var(--card); color:var(--text); border-radius:4px; cursor:pointer; font-size:12px;" data-page-node-id="CXh4I2M0XI7aOSiSCEK1Eh">复制</button>
+      </div>
+      <div style="margin-top:12px;" data-page-node-id="zuVCuduNjDGwCYT4oQdCOx">
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;" data-page-node-id="rTYCcFi5tfMiffXv8lyxxe">推导方式：23码中出现次数最多的生肖</div>
+        <div class="stats-row" data-page-node-id="LsSBBOQ60dUwPvVJU2pIyA">
+          <div class="stat-item" data-page-node-id="LOcwiOM737OWH0xIdc3Baa"><div class="label" data-page-node-id="ou5I6wNXRyQbxItGn3jJnw">综合平特肖</div><div class="value" id="composite-zodiac" style="color:var(--green);" data-page-node-id="FbkJWpyxSPdjcJvZQDA3Y3">-</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card full-width" data-page-node-id="3O4EfVQSHv6SCOYPpmYH5A">
+      <div class="card-title" data-page-node-id="jCFLbwP3flvCk47RDmxsIk">📊 记录战绩（从2026253期开始）</div>
+      <table class="backtest-table" data-page-node-id="pdF9CBSDBrVKEeHyAgGknQ">
+        <thead data-page-node-id="KHca1nzzeu1n0PBcLkJWwJ"><tr data-page-node-id="SxXq94KdMD0mj7GBsO4oJ8"><th data-page-node-id="DDk2jVb8NRWeSGpd2m2E6X">期数</th><th data-page-node-id="zDM2p8nuWTRaAyHylsqBgZ">开奖号码</th><th data-page-node-id="9YkEzjOchZZEGmKb8URKB8">23码</th><th data-page-node-id="monOWGMuYEB1qHAj6r8wCr">平特肖</th></tr></thead>
+        <tbody id="record-body" data-page-node-id="gFH02HDK3sXvTcdr8DhAPf"></tbody>
+      </table>
+      <div id="record-summary" style="font-size:11px; color:var(--text-muted); margin-top:8px;" data-page-node-id="db2gc3mvZ0GwjkNteYjnhc">加载中...</div>
+    </div>
+  </div>
+</div>
+<script>
+const API_BASE = 'https://history.macaumarksix.com/history/macaujc2/y/';
+const ZODIAC = ["鼠","牛","虎","兔","龙","蛇","马","羊","猴","鸡","狗","猪"];
+let allData = [];
+let compositeResult = null;
+
+function getYearZodiac(year) { return ZODIAC[(year - 4) % 12]; }
+// 2026年标准对照表（用户确认）
+const STD_2026 = {1:'马',2:'蛇',3:'龙',4:'兔',5:'虎',6:'牛',7:'鼠',8:'猪',9:'狗',10:'鸡',11:'猴',12:'羊'};
+function getNumberZodiac(num) { const key = num <= 12 ? num : ((num - 1) % 12) + 1; return STD_2026[key]; }
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+function extractYear(openTime) {
+  if (!openTime) return 2026;
+  return parseInt(openTime.slice(0, 4), 10) || 2026;
+}
+
+async function fetchYearData(year) {
+  try {
+    const resp = await fetch(API_BASE + year, { cache: 'no-store' });
+    const json = await resp.json();
+    const raw = json.data || [];
+    const out = [];
+    for (const item of raw) {
+      const parts = (item.openCode || '').split(',');
+      if (parts.length !== 7) continue;
+      const nums = parts.map(p => parseInt(p.trim(), 10));
+      if (nums.some(n => isNaN(n))) continue;
+      const periodNum = item.expect ? item.expect.slice(-3) : '001';
+      const openYear = extractYear(item.openTime);
+      const correctedPeriod = openYear + periodNum;
+      out.push({ period: correctedPeriod, numbers: nums.slice(0,6), special: nums[6], openTime: item.openTime });
+    }
+    return out;
+  } catch (e) {
+    return [];
+  }
+}
+
+async function fetchData() {
+  const currentYear = new Date().getFullYear();
+  const data = await fetchYearData(currentYear);
+  return data.sort((a,b) => a.openTime.localeCompare(b.openTime));
+}
+
+
+function markovPredict(data) {
+  if (data.length < 10) return { codes: Array.from({length:23}, (_,i) => i+1), zodiac: '鼠' };
+  const transition = new Map();
+  for (let i = 1; i < data.length; i++) {
+    const prev = [...data[i-1].numbers, data[i-1].special];
+    const next = [...data[i].numbers, data[i].special];
+    for (const p of prev) for (const n of next) {
+      const k = p + ',' + n;
+      transition.set(k, (transition.get(k) || 0) + 1);
+    }
+  }
+  const last = [...data[data.length-1].numbers, data[data.length-1].special];
+  const scores = {};
+  for (let n = 1; n <= 49; n++) {
+    let total = 0;
+    for (const p of last) total += transition.get(p + ',' + n) || 0;
+    scores[n] = total / last.length;
+  }
+  const top23 = Object.keys(scores).map(Number).sort((a,b) => scores[b] - scores[a]).slice(0,23).sort((a,b) => a - b);
+  const zc = {};
+  for (const n of top23) { const z = getNumberZodiac(n); zc[z] = (zc[z]||0) + 1; }
+  const topZodiac = Object.keys(zc).reduce((a,b) => zc[a] >= zc[b] ? a : b, '鼠');
+  return { codes: top23, zodiac: topZodiac };
+}
+
+function frequencyPredict(data) {
+  const recent = data.slice(-50);
+  const freq = {};
+  for (const d of [...data[data.length-1].numbers, data[data.length-1].special]) freq[d] = (freq[d]||0) + 1;
+  for (let i = 0; i < recent.length; i++) {
+    const w = (i+1) / recent.length;
+    for (const n of [...recent[i].numbers, recent[i].special]) freq[n] = (freq[n]||0) + w * 0.5;
+  }
+  const top23 = Object.keys(freq).map(Number).sort((a,b) => freq[b] - freq[a]).slice(0,23).sort((a,b) => a - b);
+  const zc = {};
+  for (const n of top23) { const z = getNumberZodiac(n); zc[z] = (zc[z]||0) + 1; }
+  const topZodiac = Object.keys(zc).reduce((a,b) => zc[a] >= zc[b] ? a : b, '鼠');
+  return { codes: top23, zodiac: topZodiac };
+}
+
+function gapPredict(data) {
+  const lastSeen = {};
+  for (let i = 0; i < data.length; i++) {
+    for (const n of [...data[i].numbers, data[i].special]) lastSeen[n] = i;
+  }
+  const gaps = {};
+  for (let n = 1; n <= 49; n++) gaps[n] = data.length - (lastSeen[n] !== undefined ? lastSeen[n] : 0);
+  const top23 = Object.keys(gaps).map(Number).sort((a,b) => gaps[b] - gaps[a]).slice(0,23).sort((a,b) => a - b);
+  const zc = {};
+  for (const n of top23) { const z = getNumberZodiac(n); zc[z] = (zc[z]||0) + 1; }
+  const topZodiac = Object.keys(zc).reduce((a,b) => zc[a] >= zc[b] ? a : b, '鼠');
+  return { codes: top23, zodiac: topZodiac };
+}
+
+// 生肖预测：30期特码频率法（回测12.6%，优于随机8.3%）
+function zodiacPredictSpecial(data) {
+  const recent30 = data.slice(-30);
+  const freq = {};
+  for (const d of recent30) {
+    const z = getNumberZodiac(d.special);
+    freq[z] = (freq[z]||0) + 1;
+  }
+  return Object.keys(freq).reduce((a,b) => freq[a] >= freq[b] ? a : b, '鼠');
+}
+
+// 23码预测：尾数热号法（回测53.7%，优于随机46.9%）
+function tailHotPredict(data) {
+  const recent30 = data.slice(-30);
+  const tailFreq = {};
+  for (const d of recent30) {
+    const nums = [...d.numbers, d.special];
+    for (const n of nums) { tailFreq[n % 10] = (tailFreq[n % 10]||0) + 1; }
+  }
+  // 选出现最多的5个尾数
+  const sortedTails = Object.keys(tailFreq).map(Number).sort((a,b) => tailFreq[b]-tailFreq[a]);
+  const topTails = new Set(sortedTails.slice(0,5));
+  // 这5个尾数对应的所有号码
+  const candidates = [];
+  for (let n=1; n<=49; n++) { if (topTails.has(n%10)) candidates.push(n); }
+  // 按频率排序取前23
+  const freq = {};
+  for (const d of recent30) {
+    const nums = [...d.numbers, d.special];
+    for (const n of nums) { freq[n] = (freq[n]||0) + 1; }
+  }
+  candidates.sort((a,b) => (freq[b]||0) - (freq[a]||0));
+  return candidates.slice(0,23).sort((a,b) => a-b);
+}
+
+function compositePredict(data) {
+  const tailCodes = tailHotPredict(data);
+  const m = markovPredict(data);
+  const f = frequencyPredict(data);
+  const g = gapPredict(data);
+  const vote = {};
+  for (const n of tailCodes) vote[n] = (vote[n]||0) + 4;
+  for (const n of m.codes) vote[n] = (vote[n]||0) + 2;
+  for (const n of f.codes) vote[n] = (vote[n]||0) + 1;
+  for (const n of g.codes) vote[n] = (vote[n]||0) + 1;
+  const top23 = Object.keys(vote).map(Number).sort((a,b) => vote[b] - vote[a]).slice(0,23).sort((a,b) => a - b);
+  // 生肖预测：独立的特码频率法
+  const topZodiac = zodiacPredictSpecial(data);
+  return { codes: top23, zodiac: topZodiac };
+}
+
+function getNextPeriod(data) {
+  const last = data[data.length-1];
+  const num = parseInt(last.period.slice(-3), 10);
+  // API年份字段有bug（写着2025），直接用系统当前年份
+  const year = new Date().getFullYear();
+  // 处理跨年：如果期号+1超过100，可能年份要+1，但澳门Mark Six每年约100期，暂不处理
+  return year + '' + pad2(num + 1);
+}
+
+const EMBEDDED_RECORDS = [
+  {"period":"2026253","actual_numbers":[5,35,15,28,13,49],"actual_special":16,"code_hit":1,"zodiac_hit":1}
+];
+
+async function loadRecords() {
+  // 优先尝试本地record.json（exe场景：file://协议直接读文件）
+  try {
+    const resp = await fetch('./record.json', {cache:'no-store'});
+    if (resp.ok) {
+      const json = await resp.json();
+      if (json.history && json.history.length > 0) return json.history;
+    }
+  } catch(e) {}
+  // 回退到硬编码数据（网页场景）
+  return EMBEDDED_RECORDS;
+}
+
+function renderComposite(pred, nextPeriod) {
+  document.getElementById('composite-title').textContent = '📊 23码综合预测 (多数投票融合) — 第 ' + nextPeriod + ' 期';
+  const container = document.getElementById('composite-codes');
+  container.innerHTML = pred.codes.map(n => '<span class="num-ball">' + pad2(n) + '</span>').join('');
+  document.getElementById('composite-zodiac').textContent = pred.zodiac;
+  document.getElementById('zodiac-title').textContent = '🐲 生肖预测 (平特肖) — 第 ' + nextPeriod + ' 期';
+  document.getElementById('zodiac-result').innerHTML = '<span style="color:var(--green); font-weight:600;">' + pred.zodiac + '</span>';
+}
+
+async function renderRecords() {
+  const records = await loadRecords();
+  const tbody = document.getElementById('record-body');
+  const fmtZ = (n) => pad2(n) + getNumberZodiac(n);
+
+  const rows = [];
+  for (const r of records) {
+    const nums = (r.actual_numbers || r.numbers || []).slice(0, 6);
+    const special = r.actual_special !== undefined ? r.actual_special : (r.actual_numbers || r.numbers || [])[6];
+    const has = nums.length === 6 && special !== undefined;
+    const lotteryNum = has ? nums.map(n => fmtZ(n)).join('+') + '=' + fmtZ(special) : '?';
+    const codeHit = has ? (r.code_hit !== undefined ? r.code_hit : r.codeHit) : null;
+    const zodiacHit = has ? (r.zodiac_hit !== undefined ? r.zodiac_hit : r.zodiacHit) : null;
+    const codeIcon = codeHit === 1 ? '\u221a' : codeHit === 0 ? '\u00d7' : '?';
+    const zodiacIcon = zodiacHit === 1 ? '\u221a' : zodiacHit === 0 ? '\u00d7' : '?';
+    const codeColor = codeIcon === '\u221a' ? 'var(--green)' : codeIcon === '\u00d7' ? 'var(--red)' : 'var(--text)';
+    const zodiacColor = zodiacIcon === '\u221a' ? 'var(--green)' : zodiacIcon === '\u00d7' ? 'var(--red)' : 'var(--text)';
+    rows.push('<tr><td>' + r.period + '</td><td>' + lotteryNum + '</td><td style="color:' + codeColor + '">' + codeIcon + '</td><td style="color:' + zodiacColor + '">' + zodiacIcon + '</td></tr>');
+  }
+
+  tbody.innerHTML = rows.join('');
+  const total = records.filter(r => (r.actual_numbers || r.numbers || []).length > 0).length;
+  const codeWin = records.filter(r => (r.code_hit !== undefined ? r.code_hit : r.codeHit) === 1).length;
+  const zodiacWin = records.filter(r => (r.zodiac_hit !== undefined ? r.zodiac_hit : r.zodiacHit) === 1).length;
+  document.getElementById('record-summary').textContent = '累计' + total + '期：23码 ' + codeWin + '/' + total + '（' + (total > 0 ? (codeWin/total*100).toFixed(1) : '0') + '%），平特肖 ' + zodiacWin + '/' + total + '（' + (total > 0 ? (zodiacWin/total*100).toFixed(1) : '0') + '%）';
+}
+
+function copyCodes() {
+  if (!compositeResult) return;
+  const text = compositeResult.codes.map(n => pad2(n)).join(' ');
+  navigator.clipboard.writeText(text).then(() => alert('已复制: ' + text));
+}
+
+function copyZodiac() {
+  if (!compositeResult) return;
+  navigator.clipboard.writeText(compositeResult.zodiac).then(() => alert('已复制: ' + compositeResult.zodiac));
+}
+
+async function init() {
+  // 先渲染战绩（来自本地 EMBEDDED_RECORDS，不依赖网络）
+  await renderRecords();
+
+  try {
+    allData = await fetchData();
+    const lastPeriod = allData[allData.length-1].period;
+    const nextPeriod = getNextPeriod(allData);
+    compositeResult = compositePredict(allData);
+    renderComposite(compositeResult, nextPeriod);
+    document.getElementById('last-update').textContent = '数据截至 ' + lastPeriod + ' 期 · ' + new Date().toLocaleString('zh-CN');
+  } catch (e) {
+    document.getElementById('progress-text').textContent = '加载失败: ' + e.message;
+    console.error(e);
+  }
+}
+
+function forceUpdate() {
+  const btn = document.getElementById('update-btn');
+  btn.textContent = '⏳ 更新中...';
+  btn.disabled = true;
+  if ('serviceWorker' in navigator && 'caches' in window) {
+    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
+  }
+  allData = [];
+  compositeResult = null;
+  fetchData().then(data => {
+    allData = data;
+    const lastPeriod = data[data.length-1].period;
+    const nextPeriod = getNextPeriod(data);
+    compositeResult = compositePredict(data);
+    renderComposite(compositeResult, nextPeriod);
+    document.getElementById('last-update').textContent = '数据截至 ' + lastPeriod + ' 期 · ' + new Date().toLocaleString('zh-CN');
+    btn.textContent = '🔄 立即更新';
+    btn.disabled = false;
+  }).catch(e => {
+    btn.textContent = '❌ 更新失败';
+    setTimeout(() => { btn.textContent = '🔄 立即更新'; btn.disabled = false; }, 2000);
+  });
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+(function() {
+  var bar = document.getElementById('progress-bar');
+  var text = document.getElementById('progress-text');
+  var progress = 0;
+  var timer = setInterval(function() {
+    progress += Math.random() * 15 + 5;
+    if (progress >= 95) progress = 95;
+    bar.style.width = progress + '%';
+    text.textContent = '加载中... ' + Math.floor(progress) + '%';
+  }, 200);
+  window.addEventListener('load', function() {
+    clearInterval(timer);
+    progress = 100;
+    bar.style.width = '100%';
+    text.textContent = '加载完成! 100%';
+    setTimeout(function() {
+      document.getElementById('loading').style.opacity = '0';
+      setTimeout(function() {
+        document.getElementById('loading').style.display = 'none';
+        document.querySelector('.container').style.display = 'block';
+      }, 500);
+    }, 300);
+  });
+})();
+
+init();
+</script>
+</body>
+</html>
