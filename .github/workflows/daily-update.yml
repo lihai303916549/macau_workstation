@@ -46,7 +46,8 @@ jobs:
         run: |
           npm install -g @cloudbase/cli
           export PATH="$(npm prefix -g)/bin:$PATH"
-          which tcb || npx -y @cloudbase/cli --version
           tcb login --apiKeyId "$TCB_SECRET_ID" --apiKey "$TCB_SECRET_KEY"
-          cd vercel_deploy
+          mkdir -p _cb_deploy
+          cp index.html record.json prediction_result.json sw.js _cb_deploy/
+          cd _cb_deploy
           tcb hosting deploy ./ -e laoliu-d0g6yej61ecb39ed7
