@@ -993,7 +993,8 @@ function getNextPeriod(data) {
   const last = data[data.length-1];
   // 下期 = 末期开奖日的次日（按日历日推算 day-of-year），自动处理跨年。
   // 不再用 macauYear()+序号+1（年末会把 2025365 算成 2026366 而非 2026001）
-  const nextDay = new Date(Date.parse(last.openTime + 'T00:00:00Z') + 86400000);
+  const dayStr = (last.openTime || '').slice(0, 10);
+  const nextDay = new Date(Date.parse(dayStr + 'T00:00:00Z') + 86400000);
   return periodOfDate(nextDay);
 }
 
@@ -1232,14 +1233,19 @@ document.addEventListener('visibilitychange', function () {
   }
 });
 
-if ('serviceWorker' in navigator) {
-  let swReloading = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (swReloading) return;
-    swReloading = true;
-    location.reload();
-  });
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+if ('serviceWorker' in navigator && navigator.serviceWorker) {
+  const sw = navigator.serviceWorker;
+  if (typeof sw.addEventListener === 'function') {
+    let swReloading = false;
+    sw.addEventListener('controllerchange', () => {
+      if (swReloading) return;
+      swReloading = true;
+      location.reload();
+    });
+  }
+  if (typeof sw.register === 'function') {
+    sw.register('./sw.js').catch(() => {});
+  }
 }
 
 (function() {
