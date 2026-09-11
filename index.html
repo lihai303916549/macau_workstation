@@ -1233,6 +1233,12 @@ document.addEventListener('visibilitychange', function () {
 });
 
 if ('serviceWorker' in navigator) {
+  let swReloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (swReloading) return;
+    swReloading = true;
+    location.reload();
+  });
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
 
