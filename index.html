@@ -63,6 +63,28 @@ h1 {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.card-head .card-title { margin-bottom: 0; }
+.copy-btn {
+  font-size: 12px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.copy-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
 .numbers-grid {
   display: flex;
   flex-wrap: wrap;
@@ -137,11 +159,17 @@ h1 {
   </div>
   <div class="grid" data-page-node-id="HWmw2nX1A0Zr5u7FgcEIjK">
     <div class="card full-width" data-page-node-id="T1RItYbMGHhvr6EHMB988L">
-      <div class="card-title" id="composite-title" data-page-node-id="DNLoMyFuRaFUOpg1tQg23o">📊 23码综合预测 — 加载中...</div>
+      <div class="card-head">
+        <div class="card-title" id="composite-title" data-page-node-id="DNLoMyFuRaFUOpg1tQg23o">📊 23码综合预测 — 加载中...</div>
+        <button type="button" class="copy-btn" id="copy-codes-btn" onclick="copyCodes()">📋 复制</button>
+      </div>
       <div class="numbers-grid" id="composite-codes" data-page-node-id="IwbcVVDR6UZFGpHsWIsHeK"></div>
     </div>
     <div class="card" data-page-node-id="yupZxNfOHRPKyFHjiZfuOW">
-      <div class="card-title" id="zodiac-title" data-page-node-id="7H5Pl8QOPFpTl7EdluTicz">🐲 生肖预测 (平特肖) — 加载中...</div>
+      <div class="card-head">
+        <div class="card-title" id="zodiac-title" data-page-node-id="7H5Pl8QOPFpTl7EdluTicz">🐲 生肖预测 (平特肖) — 加载中...</div>
+        <button type="button" class="copy-btn" id="copy-zodiac-btn" onclick="copyZodiac()">📋 复制</button>
+      </div>
       <div style="display:flex; align-items:center; gap:12px;" data-page-node-id="UomOekvylyD31E0sh1z5Ry">
         <p style="font-size:14px; line-height:1.8; flex:1;" id="zodiac-result" data-page-node-id="yLeLAO7pfYF42xivbkIPH9"></p>
       </div>
@@ -1014,6 +1042,47 @@ function renderComposite(pred, nextPeriod) {
   setHtml('composite-codes', pred.codes.map(n => '<span class="num-ball">' + pad2(n) + '</span>').join(''));
   setText('zodiac-title', '🐲 生肖预测 (平特肖) — 第 ' + nextPeriod + ' 期');
   setHtml('zodiac-result', '<span style="color:var(--green); font-weight:600;">' + pred.zodiac + '</span>');
+}
+
+function copyText(text) {
+  if (!text) return;
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
+}
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:rgba(0,0,0,.82);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;z-index:9999;max-width:80vw;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(t._timer); t._timer = setTimeout(() => { t.style.display = 'none'; }, 1800);
+}
+function copyCodes() {
+  const el = document.getElementById('composite-codes');
+  if (!el) return;
+  const text = Array.from(el.querySelectorAll('.num-ball')).map(s => s.textContent.trim()).join(' ');
+  copyText(text);
+  if (text) showToast('已复制23码: ' + text);
+}
+function copyZodiac() {
+  const el = document.getElementById('zodiac-result');
+  if (!el) return;
+  const text = el.textContent.trim();
+  copyText(text);
+  if (text) showToast('已复制平特肖: ' + text);
 }
 
 async function renderRecords() {
