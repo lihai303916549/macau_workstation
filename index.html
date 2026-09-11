@@ -991,12 +991,29 @@ function compositePredict(data) {
 }
 
 function getNextPeriod(data) {
-  const last = data[data.length-1];
-  // 下期 = 末期开奖日的次日（按日历日推算 day-of-year），自动处理跨年。
-  // 不再用 macauYear()+序号+1（年末会把 2025365 算成 2026366 而非 2026001）
-  const dayStr = (last.openTime || '').slice(0, 10);
-  const nextDay = new Date(Date.parse(dayStr + 'T00:00:00Z') + 86400000);
-  return periodOfDate(nextDay);
+  const last = data && data.length ? data[data.length - 1] : null;
+  if (last) {
+    // 优先：按期末开奖日期(YYYY-MM-DD) +1 天推算（已验证可处理跨年）
+    const dayStr = (last.openTime || '').slice(0, 10);
+    const t = Date.parse(dayStr + 'T00:00:00Z');
+    if (!isNaN(t)) {
+      const p = periodOfDate(new Date(t + 86400000));
+      if (p && p.length === 7 && !isNaN(+p.slice(3))) return p;   // 合法期号才用
+    }
+    // openTime 缺失/异常：改从末期期号本身推算次日（day-of-year+1，自动跨年）
+    try {
+      const ps = String(last.period);
+      const y = +ps.slice(0, 4);
+      const doy = +ps.slice(4);
+      if (y >= 2000 && doy >= 1 && doy <= 366) {
+        const d = new Date(Date.UTC(y, 0, 1) + (doy - 1) * 86400000);   // 末期开奖日(UTC)：期号DDD=年内第DDD天=Jan1+(DDD-1)天
+        const p = periodOfDate(new Date(d.getTime() + 86400000));
+        if (p && p.length === 7 && !isNaN(+p.slice(3))) return p;
+      }
+    } catch (e) {}
+  }
+  // 兜底：按当前澳门开奖日推算（不依赖内嵌数据），保证任何情况下都不出现 NaN
+  return offlineNextPeriod();
 }
 
 const EMBEDDED_RECORDS = [
