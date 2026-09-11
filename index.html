@@ -1043,17 +1043,6 @@ async function renderRecords() {
   setText('record-summary', '累计' + total + '期：23码 ' + codeWin + '/' + total + '（' + (total > 0 ? (codeWin/total*100).toFixed(1) : '0') + '%），平特肖 ' + zodiacWin + '/' + total + '（' + (total > 0 ? (zodiacWin/total*100).toFixed(1) : '0') + '%）');
 }
 
-function copyCodes() {
-  if (!compositeResult) return;
-  const text = compositeResult.codes.map(n => pad2(n)).join(' ');
-  navigator.clipboard.writeText(text).then(() => alert('已复制: ' + text));
-}
-
-function copyZodiac() {
-  if (!compositeResult) return;
-  navigator.clipboard.writeText(compositeResult.zodiac).then(() => alert('已复制: ' + compositeResult.zodiac));
-}
-
 async function init() {
   // 先渲染战绩（来自本地 EMBEDDED_RECORDS，不依赖网络）
   await renderRecords();
