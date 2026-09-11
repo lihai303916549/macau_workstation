@@ -1184,7 +1184,7 @@ function nextDrawDate() {
   const macau = new Date(Date.now() + UTC8_OFFSET_MS);   // 其 UTC 字段即澳门本地时间
   let t = Date.UTC(macau.getUTCFullYear(), macau.getUTCMonth(), macau.getUTCDate(),
                    DRAW_H - 8, DRAW_M, DRAW_S);
-  if (macau.getTime() >= t) t += 86400000;
+  if (Date.now() >= t) t += 86400000;
   return new Date(t);
 }
 
