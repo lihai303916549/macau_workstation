@@ -1,4 +1,4 @@
-const CACHE_NAME = 'laoliu-v9';
+const CACHE_NAME = 'laoliu-v10';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
