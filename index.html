@@ -963,11 +963,10 @@ function compositePredict(data) {
 
 function getNextPeriod(data) {
   const last = data[data.length-1];
-  const num = parseInt(last.period.slice(-3), 10);
-  // API年份字段有bug（写着2025），直接用澳门时间当前年份
-  const year = macauYear();
-  // 处理跨年：如果期号+1超过100，可能年份要+1，但澳门Mark Six每年约100期，暂不处理
-  return year + '' + pad2(num + 1);
+  // 下期 = 末期开奖日的次日（按日历日推算 day-of-year），自动处理跨年。
+  // 不再用 macauYear()+序号+1（年末会把 2025365 算成 2026366 而非 2026001）
+  const nextDay = new Date(Date.parse(last.openTime + 'T00:00:00Z') + 86400000);
+  return periodOfDate(nextDay);
 }
 
 const EMBEDDED_RECORDS = [
@@ -1187,7 +1186,6 @@ if ('serviceWorker' in navigator) {
       document.getElementById('loading').style.opacity = '0';
       setTimeout(function() {
         document.getElementById('loading').style.display = 'none';
-        document.querySelector('.container').style.display = 'block';
       }, 500);
     }, 300);
   });
