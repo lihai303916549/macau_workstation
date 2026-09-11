@@ -38,7 +38,10 @@ function loadPageAlgorithms() {
   const html = fs.readFileSync(HTML_PATH, 'utf8');
   const code = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]).join('\n');
   const store = {};
-  const mk = id => store[id] || (store[id] = { textContent: '', innerHTML: '', style: {}, disabled: false });
+  const mk = id => store[id] || (store[id] = {
+    textContent: '', innerHTML: '', value: '', style: {}, disabled: false,
+    addEventListener() {}, removeEventListener() {}, focus() {}, click() {},
+  });
   const ctx = {
     console: { log() {}, warn() {}, error() {} },
     document: { getElementById: mk, querySelector: () => mk('q'), addEventListener: () => {}, hidden: false },
@@ -47,6 +50,8 @@ function loadPageAlgorithms() {
     fetch: () => Promise.reject(new TypeError('offline')),
     setInterval: () => 0, clearInterval: () => 0, setTimeout: () => 0,
     caches: { keys: () => Promise.resolve([]), delete: () => Promise.resolve() },
+    atob: (s) => Buffer.from(s, 'base64').toString('latin1'),
+    btoa: (s) => Buffer.from(s, 'latin1').toString('base64'),
     alert: () => {}, Date, Math, JSON, Object, Array, String, Number, Map, Set, isNaN, parseInt,
   };
   ctx.globalThis = ctx;
