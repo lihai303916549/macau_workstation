@@ -1,7 +1,7 @@
 {
-  "total": 3,
+  "total": 4,
   "code_win": 2,
-  "zodiac_win": 2,
+  "zodiac_win": 3,
   "history": [
     {
       "period": "2026253",
@@ -44,6 +44,20 @@
       "actual_special": 44,
       "code_hit": 1,
       "zodiac_hit": 0
+    },
+    {
+      "period": "2026256",
+      "actual_numbers": [
+        40,
+        15,
+        9,
+        37,
+        7,
+        3
+      ],
+      "actual_special": 1,
+      "code_hit": 0,
+      "zodiac_hit": 1
     }
   ]
 }
