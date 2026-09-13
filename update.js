@@ -1,5 +1,5 @@
 /**
- * 老六预测系统 —— 自动更新脚本（本地 / GitHub Actions 通用）
+ * 六子预测系统 —— 自动更新脚本（本地 / GitHub Actions 通用）
  *
  * 做法：用 vm 加载 index.html 里的算法，保证与页面 100% 一致（不另写一套 Python 算法）。
  *
@@ -98,7 +98,7 @@ function judge(pred, draw, getNumberZodiac) {
 
 // ---------- 主流程 ----------
 (async () => {
-  log('===== 老六自动更新 =====');
+  log('===== 六子自动更新 =====');
   const api = loadPageAlgorithms();
 
   const draws = await fetchAll();
