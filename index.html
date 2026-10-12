@@ -1054,31 +1054,7 @@ const EMBEDDED_RECORDS = [
   {"period":"2026257","actual_numbers":[8,46,47,39,27,45],"actual_special":7,"code_hit":1,"zodiac_hit":0},
   {"period":"2026258","actual_numbers":[3,23,21,35,5,19],"actual_special":46,"code_hit":1,"zodiac_hit":0},
   {"period":"2026259","actual_numbers":[43,33,49,36,19,30],"actual_special":22,"code_hit":0,"zodiac_hit":0},
-  {"period":"2026260","actual_numbers":[25,26,44,32,6,48],"actual_special":20,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026261","actual_numbers":[6,25,43,46,29,47],"actual_special":24,"code_hit":0,"zodiac_hit":0},
-  {"period":"2026262","actual_numbers":[38,22,33,47,36,7],"actual_special":30,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026263","actual_numbers":[44,28,3,2,24,13],"actual_special":9,"code_hit":1,"zodiac_hit":1},
-  {"period":"2026264","actual_numbers":[10,6,8,31,22,24],"actual_special":21,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026265","actual_numbers":[5,46,40,23,26,44],"actual_special":49,"code_hit":1,"zodiac_hit":1},
-  {"period":"2026266","actual_numbers":[38,42,37,29,45,18],"actual_special":8,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026267","actual_numbers":[16,20,25,22,9,41],"actual_special":40,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026268","actual_numbers":[48,34,11,21,19,36],"actual_special":40,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026269","actual_numbers":[19,40,36,5,38,16],"actual_special":22,"code_hit":1,"zodiac_hit":0},
-  {"period":"2026270","actual_numbers":[39,34,20,24,17,6],"actual_special":19,"code_hit":1,"zodiac_hit":1},
-  {"period":"2026271","actual_numbers":[25,2,5,22,20,31],"actual_special":35,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026272","actual_numbers":[43,15,4,6,32,36],"actual_special":2,"code_hit":1,"zodiac_hit":0},
-  {"period":"2026273","actual_numbers":[30,3,25,28,6,17],"actual_special":5,"code_hit":0,"zodiac_hit":0},
-  {"period":"2026274","actual_numbers":[12,16,32,5,39,36],"actual_special":33,"code_hit":1,"zodiac_hit":0},
-  {"period":"2026275","actual_numbers":[42,49,4,47,14,43],"actual_special":17,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026276","actual_numbers":[2,21,17,40,11,24],"actual_special":14,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026277","actual_numbers":[41,23,14,31,13,32],"actual_special":11,"code_hit":0,"zodiac_hit":0},
-  {"period":"2026278","actual_numbers":[6,40,24,29,44,1],"actual_special":2,"code_hit":1,"zodiac_hit":1},
-  {"period":"2026279","actual_numbers":[29,32,47,38,6,26],"actual_special":10,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026280","actual_numbers":[1,26,28,29,3,5],"actual_special":15,"code_hit":1,"zodiac_hit":1},
-  {"period":"2026281","actual_numbers":[22,19,21,32,48,38],"actual_special":10,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026282","actual_numbers":[44,3,37,46,29,20],"actual_special":23,"code_hit":1,"zodiac_hit":1},
-  {"period":"2026283","actual_numbers":[35,8,15,6,21,1],"actual_special":18,"code_hit":0,"zodiac_hit":0},
-  {"period":"2026284","actual_numbers":[4,35,22,48,3,18],"actual_special":32,"code_hit":1,"zodiac_hit":1}
+  {"period":"2026260","actual_numbers":[25,26,44,32,6,48],"actual_special":20,"code_hit":0,"zodiac_hit":1}
 ];
 
 // 战绩有两份数据源（record.json 与 EMBEDDED_RECORDS），校验是否同步，避免只改一处
@@ -1165,6 +1141,18 @@ function copyZodiac() {
   if (text) showToast('已复制平特肖: ' + text);
 }
 
+function predZodiacFor(period) {
+  // 用截至该期之前的完整开奖历史，重算「当时」推荐生肖（与线上算法 zodiacPredictSpecial 一致）
+  const before = EMBEDDED_DATA
+    .filter(row => row[0] < period)
+    .map(row => {
+      const nums = String(row[2]).split(',').map(Number);
+      return { numbers: nums.slice(0, 6), special: nums[6] };
+    });
+  if (before.length < 30) return '';
+  return zodiacPredictSpecial(before);
+}
+
 async function renderRecords() {
   const records = await loadRecords();
   const fmtZ = (n) => pad2(n) + getNumberZodiac(n);
@@ -1181,7 +1169,8 @@ async function renderRecords() {
     const zodiacIcon = zodiacHit === 1 ? '\u221a' : zodiacHit === 0 ? '\u00d7' : '?';
     const codeColor = codeIcon === '\u221a' ? 'var(--green)' : codeIcon === '\u00d7' ? 'var(--red)' : 'var(--text)';
     const zodiacColor = zodiacIcon === '\u221a' ? 'var(--green)' : zodiacIcon === '\u00d7' ? 'var(--red)' : 'var(--text)';
-    rows.push('<tr><td>' + r.period + '</td><td>' + lotteryNum + '</td><td style="color:' + codeColor + '">' + codeIcon + '</td><td style="color:' + zodiacColor + '">' + zodiacIcon + '</td></tr>');
+    const predZ = predZodiacFor(r.period);
+    rows.push('<tr><td>' + r.period + '</td><td>' + lotteryNum + '</td><td style="color:' + codeColor + '">' + codeIcon + '</td><td style="color:' + zodiacColor + '">' + (predZ ? predZ + ' ' : '') + zodiacIcon + '</td></tr>');
   }
 
   setHtml('record-body', rows.join(''));
@@ -1353,7 +1342,7 @@ if ('serviceWorker' in navigator && navigator.serviceWorker) {
 
 // ===== 访问密码门：前端轻量鉴权（挡随手点开，非真加密）=====
 (function () {
-  var CORRECT = atob('MzAzOTE2NTQ5'); // 密码 base64 混淆，避免源码明文泄露
+  var CORRECT = atob('MDEwOA=='); // 密码 base64 混淆，避免源码明文泄露
   var gate = document.getElementById('gate');
   var pwd = document.getElementById('gate-pwd');
   var btn = document.getElementById('gate-btn');
