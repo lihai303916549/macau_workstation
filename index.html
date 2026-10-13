@@ -908,101 +908,21 @@ const EMBEDDED_DATA = [
 ];
 
 
-// ===== 平肖（生肖预测）自适应集成 =====
-// 子模型1：近 w 期特码生肖频率分布
-function zodiacFreqDist(data, w) {
-  const recent = data.slice(-w);
-  const freq = {};
-  for (const d of recent) { const z = getNumberZodiac(d.special); freq[z] = (freq[z]||0) + 1; }
-  return freq;
-}
-// 子模型2：各生肖遗漏（久未出→倾向出），转成倾向分
-function zodiacGapDist(data) {
-  const ZODIACS = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
-  const lastSeen = {};
-  for (let i = data.length - 1; i >= 0; i--) {
-    const z = getNumberZodiac(data[i].special);
-    if (lastSeen[z] === undefined) lastSeen[z] = data.length - 1 - i;
-  }
-  const gap = {};
-  for (const z of ZODIACS) gap[z] = (lastSeen[z] === undefined ? data.length : lastSeen[z]);
-  const maxGap = Math.max.apply(null, ZODIACS.map(z => gap[z]).concat([0]));
-  const dist = {};
-  for (const z of ZODIACS) dist[z] = maxGap - gap[z] + 1;
-  return dist;
-}
-// 子模型3：生肖一阶马尔可夫转移（上一特码生肖→本特码生肖），取末态转移分布
-function zodiacMarkovDist(data) {
-  const ZODIACS = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
-  const trans = {};
-  for (let i = 1; i < data.length; i++) {
-    const from = getNumberZodiac(data[i-1].special);
-    const to = getNumberZodiac(data[i].special);
-    trans[from] = trans[from] || {};
-    trans[from][to] = (trans[from][to]||0) + 1;
-  }
-  const last = getNumberZodiac(data[data.length-1].special);
-  const dist = {}; for (const z of ZODIACS) dist[z] = 0;
-  const row = trans[last] || {};
-  const total = Object.values(row).reduce((a,b)=>a+b,0) || 1;
-  for (const z of ZODIACS) dist[z] = (row[z]||0) / total;
-  return dist;
-}
-// 自适应权重：walk-forward 样本外评估各子模型「近期命中率」，命中高→权重高（无前视偏差）
-function zodiacAdaptiveWeights(data, backK) {
-  const models = [
-    { name:'f10', fn:d=>zodiacFreqDist(d,10) },
-    { name:'f20', fn:d=>zodiacFreqDist(d,20) },
-    { name:'f30', fn:d=>zodiacFreqDist(d,30) },
-    { name:'f50', fn:d=>zodiacFreqDist(d,50) },
-    { name:'gap', fn:d=>zodiacGapDist(d) },
-    { name:'markov', fn:d=>zodiacMarkovDist(d) },
-  ];
-  const n = data.length, start = Math.max(backK, 60);
-  if (n < start + 1) { const w={}; for (const m of models) w[m.name]=1; return w; }
-  const hits = {}; for (const m of models) hits[m.name]=0;
-  for (let t = n - backK; t < n; t++) {
-    const train = data.slice(0, t);
-    const trueZ = getNumberZodiac(data[t].special);
-    for (const m of models) {
-      const dist = m.fn(train);
-      let best='鼠', bv=-1; for (const z in dist) if (dist[z] > bv) { bv=dist[z]; best=z; }
-      if (best === trueZ) hits[m.name]++;
-    }
-  }
-  const w = {};
-  for (const m of models) { const rate = hits[m.name]/backK; w[m.name] = 1 + rate*3; }
-  return w;
-}
-// 平肖自适应集成预测：返回 { primary, list:[Top3生肖], scores:{生肖:概率} }
+// ===== 平肖（生肖预测）近30期特码频率法（朴素单生肖） =====
+// 取最近30期，数每个生肖在特码位出现次数，推最热那一个
 function zodiacPredictSpecial(data) {
-  const models = [
-    { name:'f10', fn:d=>zodiacFreqDist(d,10) },
-    { name:'f20', fn:d=>zodiacFreqDist(d,20) },
-    { name:'f30', fn:d=>zodiacFreqDist(d,30) },
-    { name:'f50', fn:d=>zodiacFreqDist(d,50) },
-    { name:'gap', fn:d=>zodiacGapDist(d) },
-    { name:'markov', fn:d=>zodiacMarkovDist(d) },
-  ];
-  const ZODIACS = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
-  const weights = zodiacAdaptiveWeights(data, 30);
-  const combined = {}; for (const z of ZODIACS) combined[z] = 0;
-  for (const m of models) {
-    const dist = m.fn(data);
-    const w = weights[m.name];
-    const total = Object.values(dist).reduce((a,b)=>a+b,0) || 1;
-    for (const z of ZODIACS) combined[z] += ((dist[z]||0)/total) * w;
+  const recent30 = data.slice(-30);
+  const freq = {};
+  for (const d of recent30) {
+    const z = getNumberZodiac(d.special);
+    freq[z] = (freq[z]||0) + 1;
   }
-  const sorted = ZODIACS.slice().sort((a,b)=>combined[b]-combined[a]);
-  const top3 = sorted.slice(0,3);
-  const sum = top3.reduce((a,z)=>a+combined[z],0) || 1;
-  const scores = {}; for (const z of top3) scores[z] = +(combined[z]/sum).toFixed(3);
-  return { primary: top3[0], list: top3, scores };
+  return Object.keys(freq).reduce((a,b) => freq[a] >= freq[b] ? a : b, '鼠');
 }
 function compositePredict(data) {
   // 仅保留生肖（平特肖）预测；23码预测已移除
   const topZodiac = zodiacPredictSpecial(data);
-  return { zodiac: topZodiac.primary, zodiacDetail: topZodiac };
+  return { zodiac: topZodiac };
 }
 
 function getNextPeriod(data) {
@@ -1079,16 +999,8 @@ function setHtml(id, html) {
 }
 
 function renderComposite(pred, nextPeriod) {
-  setText('zodiac-title', '🐲 生肖预测 (平特肖·自适应加权) — 第 ' + nextPeriod + ' 期');
-  const zd = pred.zodiacDetail;
-  if (zd && zd.list && zd.list.length) {
-    const main = zd.list[0];
-    const mainPct = (zd.scores[main] * 100).toFixed(0);
-    const refs = zd.list.slice(1).map(z => z + ' ' + (zd.scores[z]*100).toFixed(0) + '%').join('　');
-    setHtml('zodiac-result', '主推 <b style=\'color:var(--green);\'>' + main + '</b> ' + mainPct + '%' + (refs ? '　参考：' + refs : '') + '<br><span style=\'font-size:12px;color:var(--muted);\'>自适应集成：近30期各子模型样本外命中率动态赋权</span>');
-  } else {
-    setHtml('zodiac-result', '<span style=\'color:var(--green); font-weight:600;\'>' + pred.zodiac + '</span>');
-  }
+  setText('zodiac-title', '🐲 生肖预测 (平特肖) — 第 ' + nextPeriod + ' 期');
+  setHtml('zodiac-result', '<span style="color:var(--green); font-weight:600;">' + pred.zodiac + '</span>');
 }
 
 function copyText(text) {
@@ -1126,15 +1038,15 @@ function copyZodiac() {
 }
 
 function predZodiacFor(period) {
-  // 用截至该期之前的完整开奖历史，重算「当时」推荐三肖（与线上预测同算法 zodiacPredictSpecial，自适应集成 Top3）
+  // 用截至该期之前的完整开奖历史，重算「当时」推荐生肖（近30期特码频率众数，与线上 zodiacPredictSpecial 一致）
   const before = EMBEDDED_DATA
     .filter(row => row[0] < period)
     .map(row => {
       const nums = String(row[2]).split(',').map(Number);
       return { numbers: nums.slice(0, 6), special: nums[6] };
     });
-  if (before.length < 60) return null;   // 自适应集成需≥60期历史窗口，数据不足时不强行推荐
-  return zodiacPredictSpecial(before);    // { primary, list:[Top3生肖], scores:{生肖:概率} }
+  if (before.length < 30) return null;
+  return zodiacPredictSpecial(before);
 }
 
 async function renderRecords() {
@@ -1142,34 +1054,23 @@ async function renderRecords() {
   const fmtZ = (n) => pad2(n) + getNumberZodiac(n);
 
   const rows = [];
-  let threeHit = 0, counted = 0;
+  let zodiacWin = 0, counted = 0;
   for (const r of records) {
     const nums = (r.actual_numbers || r.numbers || []).slice(0, 6);
     const special = r.actual_special !== undefined ? r.actual_special : (r.actual_numbers || r.numbers || [])[6];
     const has = nums.length === 6 && special !== undefined;
     const lotteryNum = has ? nums.map(n => fmtZ(n)).join('+') + '=' + fmtZ(special) : '?';
-    const actualZodiacs = has ? [...nums, special].map(n => getNumberZodiac(n)) : [];
-    const predZ = predZodiacFor(r.period);   // 当时推荐三肖 {list:[Top3], scores}
-    let cells, hit = false;
-    if (predZ && predZ.list && predZ.list.length === 3) {
-      hit = predZ.list.some(z => actualZodiacs.includes(z));
-      cells = predZ.list.map((z, i) => {
-        const zh = actualZodiacs.includes(z);                 // 本期开奖7号中是否出现该生肖
-        const color = zh ? 'var(--green)' : 'var(--red)';
-        const icon = zh ? '\u221a' : '\u00d7';
-        const weight = i === 0 ? 'font-weight:600;' : '';     // 主推加粗
-        return '<span style="color:' + color + ';' + weight + '">' + z + icon + '</span>';
-      }).join('　');
-    } else {
-      cells = '<span style="color:var(--text)">数据不足</span>';
-    }
-    if (has && predZ && predZ.list && predZ.list.length === 3) counted++;
-    if (has && hit) threeHit++;
-    rows.push('<tr><td>' + r.period + '</td><td>' + lotteryNum + '</td><td>' + cells + '</td></tr>');
+    const predZ = predZodiacFor(r.period);
+    const zodiacHit = (has && predZ) ? ([...nums, special].some(n => getNumberZodiac(n) === predZ)) : null;
+    const zodiacIcon = zodiacHit === true ? '\u221a' : zodiacHit === false ? '\u00d7' : '?';
+    const zodiacColor = zodiacIcon === '\u221a' ? 'var(--green)' : zodiacIcon === '\u00d7' ? 'var(--red)' : 'var(--text)';
+    rows.push('<tr><td>' + r.period + '</td><td>' + lotteryNum + '</td><td style="color:' + zodiacColor + '">' + (predZ ? predZ + ' ' : '') + zodiacIcon + '</td></tr>');
+    if (has) counted++;
+    if (has && zodiacHit) zodiacWin++;
   }
 
   setHtml('record-body', rows.join(''));
-  setText('record-summary', '累计' + counted + '期：平特肖(三肖)命中 ' + threeHit + '/' + counted + '（' + (counted > 0 ? (threeHit/counted*100).toFixed(1) : '0') + '%）');
+  setText('record-summary', '累计' + counted + '期：平特肖 ' + zodiacWin + '/' + counted + '（' + (counted > 0 ? (zodiacWin/counted*100).toFixed(1) : '0') + '%）');
 }
 
 async function init() {
