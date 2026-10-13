@@ -911,8 +911,7 @@ const EMBEDDED_DATA = [
 ["2026281","2026-10-08","22,19,21,32,48,38,10"],
 ["2026282","2026-10-09","44,03,37,46,29,20,23"],
 ["2026283","2026-10-10","35,08,15,06,21,01,18"],
-["2026284","2026-10-11","04,35,22,48,03,18,32"],
-["2026285","2026-10-12","46,45,43,39,20,40,19"]
+["2026284","2026-10-11","04,35,22,48,03,18,32"]
 ];
 
 
@@ -971,14 +970,101 @@ function gapPredict(data) {
 }
 
 // 生肖预测：30期特码频率法（回测12.6%，优于随机8.3%）
-function zodiacPredictSpecial(data) {
-  const recent30 = data.slice(-30);
+// ===== 平肖（生肖预测）自适应集成 =====
+// 子模型1：近 w 期特码生肖频率分布
+function zodiacFreqDist(data, w) {
+  const recent = data.slice(-w);
   const freq = {};
-  for (const d of recent30) {
-    const z = getNumberZodiac(d.special);
-    freq[z] = (freq[z]||0) + 1;
+  for (const d of recent) { const z = getNumberZodiac(d.special); freq[z] = (freq[z]||0) + 1; }
+  return freq;
+}
+// 子模型2：各生肖遗漏（久未出→倾向出），转成倾向分
+function zodiacGapDist(data) {
+  const ZODIACS = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+  const lastSeen = {};
+  for (let i = data.length - 1; i >= 0; i--) {
+    const z = getNumberZodiac(data[i].special);
+    if (lastSeen[z] === undefined) lastSeen[z] = data.length - 1 - i;
   }
-  return Object.keys(freq).reduce((a,b) => freq[a] >= freq[b] ? a : b, '鼠');
+  const gap = {};
+  for (const z of ZODIACS) gap[z] = (lastSeen[z] === undefined ? data.length : lastSeen[z]);
+  const maxGap = Math.max.apply(null, ZODIACS.map(z => gap[z]).concat([0]));
+  const dist = {};
+  for (const z of ZODIACS) dist[z] = maxGap - gap[z] + 1;
+  return dist;
+}
+// 子模型3：生肖一阶马尔可夫转移（上一特码生肖→本特码生肖），取末态转移分布
+function zodiacMarkovDist(data) {
+  const ZODIACS = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+  const trans = {};
+  for (let i = 1; i < data.length; i++) {
+    const from = getNumberZodiac(data[i-1].special);
+    const to = getNumberZodiac(data[i].special);
+    trans[from] = trans[from] || {};
+    trans[from][to] = (trans[from][to]||0) + 1;
+  }
+  const last = getNumberZodiac(data[data.length-1].special);
+  const dist = {}; for (const z of ZODIACS) dist[z] = 0;
+  const row = trans[last] || {};
+  const total = Object.values(row).reduce((a,b)=>a+b,0) || 1;
+  for (const z of ZODIACS) dist[z] = (row[z]||0) / total;
+  return dist;
+}
+// 自适应权重：walk-forward 样本外评估各子模型「近期命中率」，命中高→权重高（无前视偏差）
+function zodiacAdaptiveWeights(data, backK) {
+  const models = [
+    { name:'f10', fn:d=>zodiacFreqDist(d,10) },
+    { name:'f20', fn:d=>zodiacFreqDist(d,20) },
+    { name:'f30', fn:d=>zodiacFreqDist(d,30) },
+    { name:'f50', fn:d=>zodiacFreqDist(d,50) },
+    { name:'gap', fn:d=>zodiacGapDist(d) },
+    { name:'markov', fn:d=>zodiacMarkovDist(d) },
+  ];
+  const n = data.length, start = Math.max(backK, 60);
+  if (n < start + 1) { const w={}; for (const m of models) w[m.name]=1; return w; }
+  const hits = {}; for (const m of models) hits[m.name]=0;
+  for (let t = n - backK; t < n; t++) {
+    const train = data.slice(0, t);
+    const trueZ = getNumberZodiac(data[t].special);
+    for (const m of models) {
+      const dist = m.fn(train);
+      let best='鼠', bv=-1; for (const z in dist) if (dist[z] > bv) { bv=dist[z]; best=z; }
+      if (best === trueZ) hits[m.name]++;
+    }
+  }
+  const w = {};
+  for (const m of models) { const rate = hits[m.name]/backK; w[m.name] = 1 + rate*3; }
+  return w;
+}
+// 平肖自适应集成预测：返回 { primary, list:[Top3生肖], scores:{生肖:概率} }
+function zodiacPredictSpecial(data) {
+  const models = [
+    { name:'f10', fn:d=>zodiacFreqDist(d,10) },
+    { name:'f20', fn:d=>zodiacFreqDist(d,20) },
+    { name:'f30', fn:d=>zodiacFreqDist(d,30) },
+    { name:'f50', fn:d=>zodiacFreqDist(d,50) },
+    { name:'gap', fn:d=>zodiacGapDist(d) },
+    { name:'markov', fn:d=>zodiacMarkovDist(d) },
+  ];
+  const ZODIACS = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+  const weights = zodiacAdaptiveWeights(data, 30);
+  const combined = {}; for (const z of ZODIACS) combined[z] = 0;
+  for (const m of models) {
+    const dist = m.fn(data);
+    const w = weights[m.name];
+    const total = Object.values(dist).reduce((a,b)=>a+b,0) || 1;
+    for (const z of ZODIACS) combined[z] += ((dist[z]||0)/total) * w;
+  }
+  const sorted = ZODIACS.slice().sort((a,b)=>combined[b]-combined[a]);
+  const top3 = sorted.slice(0,3);
+  const sum = top3.reduce((a,z)=>a+combined[z],0) || 1;
+  const scores = {}; for (const z of top3) scores[z] = +(combined[z]/sum).toFixed(3);
+  return { primary: top3[0], list: top3, scores };
+}
+// 战绩列回看专用：保持与历史 record.json 口径一致（近30期特码频率众数，单生肖）
+function zodiacPrimaryLegacy(data) {
+  const freq = zodiacFreqDist(data, 30);
+  return Object.keys(freq).reduce((a,b)=> freq[a] >= freq[b] ? a : b, '鼠');
 }
 
 // 23码预测：尾数热号法（回测53.7%，优于随机46.9%）
@@ -1018,7 +1104,7 @@ function compositePredict(data) {
   const top23 = Object.keys(vote).map(Number).sort((a,b) => vote[b] - vote[a]).slice(0,23).sort((a,b) => a - b);
   // 生肖预测：独立的特码频率法
   const topZodiac = zodiacPredictSpecial(data);
-  return { codes: top23, zodiac: topZodiac };
+  return { codes: top23, zodiac: topZodiac.primary, zodiacDetail: topZodiac };
 }
 
 function getNextPeriod(data) {
@@ -1055,32 +1141,7 @@ const EMBEDDED_RECORDS = [
   {"period":"2026257","actual_numbers":[8,46,47,39,27,45],"actual_special":7,"code_hit":1,"zodiac_hit":0},
   {"period":"2026258","actual_numbers":[3,23,21,35,5,19],"actual_special":46,"code_hit":1,"zodiac_hit":0},
   {"period":"2026259","actual_numbers":[43,33,49,36,19,30],"actual_special":22,"code_hit":0,"zodiac_hit":0},
-  {"period":"2026260","actual_numbers":[25,26,44,32,6,48],"actual_special":20,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026261","actual_numbers":[6,25,43,46,29,47],"actual_special":24,"code_hit":0,"zodiac_hit":0},
-  {"period":"2026262","actual_numbers":[38,22,33,47,36,7],"actual_special":30,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026263","actual_numbers":[44,28,3,2,24,13],"actual_special":9,"code_hit":1,"zodiac_hit":1},
-  {"period":"2026264","actual_numbers":[10,6,8,31,22,24],"actual_special":21,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026265","actual_numbers":[5,46,40,23,26,44],"actual_special":49,"code_hit":1,"zodiac_hit":1},
-  {"period":"2026266","actual_numbers":[38,42,37,29,45,18],"actual_special":8,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026267","actual_numbers":[16,20,25,22,9,41],"actual_special":40,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026268","actual_numbers":[48,34,11,21,19,36],"actual_special":40,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026269","actual_numbers":[19,40,36,5,38,16],"actual_special":22,"code_hit":1,"zodiac_hit":0},
-  {"period":"2026270","actual_numbers":[39,34,20,24,17,6],"actual_special":19,"code_hit":1,"zodiac_hit":1},
-  {"period":"2026271","actual_numbers":[25,2,5,22,20,31],"actual_special":35,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026272","actual_numbers":[43,15,4,6,32,36],"actual_special":2,"code_hit":1,"zodiac_hit":0},
-  {"period":"2026273","actual_numbers":[30,3,25,28,6,17],"actual_special":5,"code_hit":0,"zodiac_hit":0},
-  {"period":"2026274","actual_numbers":[12,16,32,5,39,36],"actual_special":33,"code_hit":1,"zodiac_hit":0},
-  {"period":"2026275","actual_numbers":[42,49,4,47,14,43],"actual_special":17,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026276","actual_numbers":[2,21,17,40,11,24],"actual_special":14,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026277","actual_numbers":[41,23,14,31,13,32],"actual_special":11,"code_hit":0,"zodiac_hit":0},
-  {"period":"2026278","actual_numbers":[6,40,24,29,44,1],"actual_special":2,"code_hit":1,"zodiac_hit":1},
-  {"period":"2026279","actual_numbers":[29,32,47,38,6,26],"actual_special":10,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026280","actual_numbers":[1,26,28,29,3,5],"actual_special":15,"code_hit":1,"zodiac_hit":1},
-  {"period":"2026281","actual_numbers":[22,19,21,32,48,38],"actual_special":10,"code_hit":0,"zodiac_hit":1},
-  {"period":"2026282","actual_numbers":[44,3,37,46,29,20],"actual_special":23,"code_hit":1,"zodiac_hit":1},
-  {"period":"2026283","actual_numbers":[35,8,15,6,21,1],"actual_special":18,"code_hit":0,"zodiac_hit":0},
-  {"period":"2026284","actual_numbers":[4,35,22,48,3,18],"actual_special":32,"code_hit":1,"zodiac_hit":1},
-  {"period":"2026285","actual_numbers":[46,45,43,39,20,40],"actual_special":19,"code_hit":1,"zodiac_hit":1}
+  {"period":"2026260","actual_numbers":[25,26,44,32,6,48],"actual_special":20,"code_hit":0,"zodiac_hit":1}
 ];
 
 // 战绩有两份数据源（record.json 与 EMBEDDED_RECORDS），校验是否同步，避免只改一处
@@ -1122,8 +1183,16 @@ function setHtml(id, html) {
 function renderComposite(pred, nextPeriod) {
   setText('composite-title', '📊 23码综合预测 (多数投票融合) — 第 ' + nextPeriod + ' 期');
   setHtml('composite-codes', pred.codes.map(n => '<span class="num-ball">' + pad2(n) + '</span>').join(''));
-  setText('zodiac-title', '🐲 生肖预测 (平特肖) — 第 ' + nextPeriod + ' 期');
-  setHtml('zodiac-result', '<span style="color:var(--green); font-weight:600;">' + pred.zodiac + '</span>');
+  setText('zodiac-title', '🐲 生肖预测 (平特肖·自适应加权) — 第 ' + nextPeriod + ' 期');
+  const zd = pred.zodiacDetail;
+  if (zd && zd.list && zd.list.length) {
+    const main = zd.list[0];
+    const mainPct = (zd.scores[main] * 100).toFixed(0);
+    const refs = zd.list.slice(1).map(z => z + ' ' + (zd.scores[z]*100).toFixed(0) + '%').join('　');
+    setHtml('zodiac-result', '主推 <b style=\'color:var(--green);\'>' + main + '</b> ' + mainPct + '%' + (refs ? '　参考：' + refs : '') + '<br><span style=\'font-size:12px;color:var(--muted);\'>自适应集成：近30期各子模型样本外命中率动态赋权</span>');
+  } else {
+    setHtml('zodiac-result', '<span style=\'color:var(--green); font-weight:600;\'>' + pred.zodiac + '</span>');
+  }
 }
 
 function copyText(text) {
@@ -1176,7 +1245,7 @@ function predZodiacFor(period) {
       return { numbers: nums.slice(0, 6), special: nums[6] };
     });
   if (before.length < 30) return '';
-  return zodiacPredictSpecial(before);
+  return zodiacPrimaryLegacy(before);
 }
 
 async function renderRecords() {
