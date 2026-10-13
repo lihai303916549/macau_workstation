@@ -158,13 +158,6 @@ h1 {
     <span id="last-update" style="font-size:12px;color:var(--text-muted);" data-page-node-id="djgGqsdki6UKeDsTsbX1J6"></span>
   </div>
   <div class="grid" data-page-node-id="HWmw2nX1A0Zr5u7FgcEIjK">
-    <div class="card full-width" data-page-node-id="T1RItYbMGHhvr6EHMB988L">
-      <div class="card-head">
-        <div class="card-title" id="composite-title" data-page-node-id="DNLoMyFuRaFUOpg1tQg23o">📊 23码综合预测 — 加载中...</div>
-        <button type="button" class="copy-btn" id="copy-codes-btn" onclick="copyCodes()">📋 复制</button>
-      </div>
-      <div class="numbers-grid" id="composite-codes" data-page-node-id="IwbcVVDR6UZFGpHsWIsHeK"></div>
-    </div>
     <div class="card" data-page-node-id="yupZxNfOHRPKyFHjiZfuOW">
       <div class="card-head">
         <div class="card-title" id="zodiac-title" data-page-node-id="7H5Pl8QOPFpTl7EdluTicz">🐲 生肖预测 (平特肖) — 加载中...</div>
@@ -177,7 +170,7 @@ h1 {
     <div class="card full-width" data-page-node-id="3O4EfVQSHv6SCOYPpmYH5A">
       <div class="card-title" data-page-node-id="jCFLbwP3flvCk47RDmxsIk">📊 记录战绩（从2026253期开始）</div>
       <table class="backtest-table" data-page-node-id="pdF9CBSDBrVKEeHyAgGknQ">
-        <thead data-page-node-id="KHca1nzzeu1n0PBcLkJWwJ"><tr data-page-node-id="SxXq94KdMD0mj7GBsO4oJ8"><th data-page-node-id="DDk2jVb8NRWeSGpd2m2E6X">期数</th><th data-page-node-id="zDM2p8nuWTRaAyHylsqBgZ">开奖号码</th><th data-page-node-id="9YkEzjOchZZEGmKb8URKB8">23码</th><th data-page-node-id="monOWGMuYEB1qHAj6r8wCr">平特肖</th></tr></thead>
+        <thead data-page-node-id="KHca1nzzeu1n0PBcLkJWwJ"><tr data-page-node-id="SxXq94KdMD0mj7GBsO4oJ8"><th data-page-node-id="DDk2jVb8NRWeSGpd2m2E6X">期数</th><th data-page-node-id="zDM2p8nuWTRaAyHylsqBgZ">开奖号码</th><th data-page-node-id="monOWGMuYEB1qHAj6r8wCr">平特肖</th></tr></thead>
         <tbody id="record-body" data-page-node-id="gFH02HDK3sXvTcdr8DhAPf"></tbody>
       </table>
       <div id="record-summary" style="font-size:11px; color:var(--text-muted); margin-top:8px;" data-page-node-id="db2gc3mvZ0GwjkNteYjnhc">加载中...</div>
@@ -1092,19 +1085,9 @@ function tailHotPredict(data) {
 }
 
 function compositePredict(data) {
-  const tailCodes = tailHotPredict(data);
-  const m = markovPredict(data);
-  const f = frequencyPredict(data);
-  const g = gapPredict(data);
-  const vote = {};
-  for (const n of tailCodes) vote[n] = (vote[n]||0) + 4;
-  for (const n of m.codes) vote[n] = (vote[n]||0) + 2;
-  for (const n of f.codes) vote[n] = (vote[n]||0) + 1;
-  for (const n of g.codes) vote[n] = (vote[n]||0) + 1;
-  const top23 = Object.keys(vote).map(Number).sort((a,b) => vote[b] - vote[a]).slice(0,23).sort((a,b) => a - b);
-  // 生肖预测：独立的特码频率法
+  // 仅保留生肖（平特肖）预测；23码预测已移除
   const topZodiac = zodiacPredictSpecial(data);
-  return { codes: top23, zodiac: topZodiac.primary, zodiacDetail: topZodiac };
+  return { zodiac: topZodiac.primary, zodiacDetail: topZodiac };
 }
 
 function getNextPeriod(data) {
@@ -1181,8 +1164,6 @@ function setHtml(id, html) {
 }
 
 function renderComposite(pred, nextPeriod) {
-  setText('composite-title', '📊 23码综合预测 (多数投票融合) — 第 ' + nextPeriod + ' 期');
-  setHtml('composite-codes', pred.codes.map(n => '<span class="num-ball">' + pad2(n) + '</span>').join(''));
   setText('zodiac-title', '🐲 生肖预测 (平特肖·自适应加权) — 第 ' + nextPeriod + ' 期');
   const zd = pred.zodiacDetail;
   if (zd && zd.list && zd.list.length) {
@@ -1221,13 +1202,6 @@ function showToast(msg) {
   t.textContent = msg; t.style.display = 'block';
   clearTimeout(t._timer); t._timer = setTimeout(() => { t.style.display = 'none'; }, 1800);
 }
-function copyCodes() {
-  const el = document.getElementById('composite-codes');
-  if (!el) return;
-  const text = Array.from(el.querySelectorAll('.num-ball')).map(s => s.textContent.trim()).join(' ');
-  copyText(text);
-  if (text) showToast('已复制23码: ' + text);
-}
 function copyZodiac() {
   const el = document.getElementById('zodiac-result');
   if (!el) return;
@@ -1258,21 +1232,17 @@ async function renderRecords() {
     const special = r.actual_special !== undefined ? r.actual_special : (r.actual_numbers || r.numbers || [])[6];
     const has = nums.length === 6 && special !== undefined;
     const lotteryNum = has ? nums.map(n => fmtZ(n)).join('+') + '=' + fmtZ(special) : '?';
-    const codeHit = has ? (r.code_hit !== undefined ? r.code_hit : r.codeHit) : null;
     const zodiacHit = has ? (r.zodiac_hit !== undefined ? r.zodiac_hit : r.zodiacHit) : null;
-    const codeIcon = codeHit === 1 ? '\u221a' : codeHit === 0 ? '\u00d7' : '?';
     const zodiacIcon = zodiacHit === 1 ? '\u221a' : zodiacHit === 0 ? '\u00d7' : '?';
-    const codeColor = codeIcon === '\u221a' ? 'var(--green)' : codeIcon === '\u00d7' ? 'var(--red)' : 'var(--text)';
     const zodiacColor = zodiacIcon === '\u221a' ? 'var(--green)' : zodiacIcon === '\u00d7' ? 'var(--red)' : 'var(--text)';
     const predZ = predZodiacFor(r.period);
-    rows.push('<tr><td>' + r.period + '</td><td>' + lotteryNum + '</td><td style="color:' + codeColor + '">' + codeIcon + '</td><td style="color:' + zodiacColor + '">' + (predZ ? predZ + ' ' : '') + zodiacIcon + '</td></tr>');
+    rows.push('<tr><td>' + r.period + '</td><td>' + lotteryNum + '</td><td style="color:' + zodiacColor + '">' + (predZ ? predZ + ' ' : '') + zodiacIcon + '</td></tr>');
   }
 
   setHtml('record-body', rows.join(''));
   const total = records.filter(r => (r.actual_numbers || r.numbers || []).length > 0).length;
-  const codeWin = records.filter(r => (r.code_hit !== undefined ? r.code_hit : r.codeHit) === 1).length;
   const zodiacWin = records.filter(r => (r.zodiac_hit !== undefined ? r.zodiac_hit : r.zodiacHit) === 1).length;
-  setText('record-summary', '累计' + total + '期：23码 ' + codeWin + '/' + total + '（' + (total > 0 ? (codeWin/total*100).toFixed(1) : '0') + '%），平特肖 ' + zodiacWin + '/' + total + '（' + (total > 0 ? (zodiacWin/total*100).toFixed(1) : '0') + '%）');
+  setText('record-summary', '累计' + total + '期：平特肖 ' + zodiacWin + '/' + total + '（' + (total > 0 ? (zodiacWin/total*100).toFixed(1) : '0') + '%）');
 }
 
 async function init() {
