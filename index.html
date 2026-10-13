@@ -908,61 +908,6 @@ const EMBEDDED_DATA = [
 ];
 
 
-function markovPredict(data) {
-  if (data.length < 10) return { codes: Array.from({length:23}, (_,i) => i+1), zodiac: '鼠' };
-  const transition = new Map();
-  for (let i = 1; i < data.length; i++) {
-    const prev = [...data[i-1].numbers, data[i-1].special];
-    const next = [...data[i].numbers, data[i].special];
-    for (const p of prev) for (const n of next) {
-      const k = p + ',' + n;
-      transition.set(k, (transition.get(k) || 0) + 1);
-    }
-  }
-  const last = [...data[data.length-1].numbers, data[data.length-1].special];
-  const scores = {};
-  for (let n = 1; n <= 49; n++) {
-    let total = 0;
-    for (const p of last) total += transition.get(p + ',' + n) || 0;
-    scores[n] = total / last.length;
-  }
-  const top23 = Object.keys(scores).map(Number).sort((a,b) => scores[b] - scores[a]).slice(0,23).sort((a,b) => a - b);
-  const zc = {};
-  for (const n of top23) { const z = getNumberZodiac(n); zc[z] = (zc[z]||0) + 1; }
-  const topZodiac = Object.keys(zc).reduce((a,b) => zc[a] >= zc[b] ? a : b, '鼠');
-  return { codes: top23, zodiac: topZodiac };
-}
-
-function frequencyPredict(data) {
-  const recent = data.slice(-50);
-  const freq = {};
-  for (const d of [...data[data.length-1].numbers, data[data.length-1].special]) freq[d] = (freq[d]||0) + 1;
-  for (let i = 0; i < recent.length; i++) {
-    const w = (i+1) / recent.length;
-    for (const n of [...recent[i].numbers, recent[i].special]) freq[n] = (freq[n]||0) + w * 0.5;
-  }
-  const top23 = Object.keys(freq).map(Number).sort((a,b) => freq[b] - freq[a]).slice(0,23).sort((a,b) => a - b);
-  const zc = {};
-  for (const n of top23) { const z = getNumberZodiac(n); zc[z] = (zc[z]||0) + 1; }
-  const topZodiac = Object.keys(zc).reduce((a,b) => zc[a] >= zc[b] ? a : b, '鼠');
-  return { codes: top23, zodiac: topZodiac };
-}
-
-function gapPredict(data) {
-  const lastSeen = {};
-  for (let i = 0; i < data.length; i++) {
-    for (const n of [...data[i].numbers, data[i].special]) lastSeen[n] = i;
-  }
-  const gaps = {};
-  for (let n = 1; n <= 49; n++) gaps[n] = data.length - (lastSeen[n] !== undefined ? lastSeen[n] : 0);
-  const top23 = Object.keys(gaps).map(Number).sort((a,b) => gaps[b] - gaps[a]).slice(0,23).sort((a,b) => a - b);
-  const zc = {};
-  for (const n of top23) { const z = getNumberZodiac(n); zc[z] = (zc[z]||0) + 1; }
-  const topZodiac = Object.keys(zc).reduce((a,b) => zc[a] >= zc[b] ? a : b, '鼠');
-  return { codes: top23, zodiac: topZodiac };
-}
-
-// 生肖预测：30期特码频率法（回测12.6%，优于随机8.3%）
 // ===== 平肖（生肖预测）自适应集成 =====
 // 子模型1：近 w 期特码生肖频率分布
 function zodiacFreqDist(data, w) {
@@ -1058,30 +1003,6 @@ function zodiacPredictSpecial(data) {
 function zodiacPrimaryLegacy(data) {
   const freq = zodiacFreqDist(data, 30);
   return Object.keys(freq).reduce((a,b)=> freq[a] >= freq[b] ? a : b, '鼠');
-}
-
-// 23码预测：尾数热号法（回测53.7%，优于随机46.9%）
-function tailHotPredict(data) {
-  const recent30 = data.slice(-30);
-  const tailFreq = {};
-  for (const d of recent30) {
-    const nums = [...d.numbers, d.special];
-    for (const n of nums) { tailFreq[n % 10] = (tailFreq[n % 10]||0) + 1; }
-  }
-  // 选出现最多的5个尾数
-  const sortedTails = Object.keys(tailFreq).map(Number).sort((a,b) => tailFreq[b]-tailFreq[a]);
-  const topTails = new Set(sortedTails.slice(0,5));
-  // 这5个尾数对应的所有号码
-  const candidates = [];
-  for (let n=1; n<=49; n++) { if (topTails.has(n%10)) candidates.push(n); }
-  // 按频率排序取前23
-  const freq = {};
-  for (const d of recent30) {
-    const nums = [...d.numbers, d.special];
-    for (const n of nums) { freq[n] = (freq[n]||0) + 1; }
-  }
-  candidates.sort((a,b) => (freq[b]||0) - (freq[a]||0));
-  return candidates.slice(0,23).sort((a,b) => a-b);
 }
 
 function compositePredict(data) {
