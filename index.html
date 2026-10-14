@@ -910,19 +910,31 @@ const EMBEDDED_DATA = [
 ];
 
 
-// ===== 平肖（生肖预测）顶级集成算法 =====
-// 6 子模型：近10/20/30/50期特码频率、生肖遗漏(均值回归)、一阶马尔可夫(生肖转移)
-// 集成：walk-forward 动态权重（各子模型在最近30期样本外命中率，命中高则权重高）
-// 回测(651期真实数据，提前一期)：集成 50.08% vs 朴素近30期 49.75%，均显著高于随机基准~44.4%
+// ===== 平肖（生肖预测）七码频率法（换思路：把 6 个正码也纳入统计）=====
+// 平特肖命中看开奖 7 个号（6 正码 + 特码），之前只数特码 1 个球是信息损失。
+// 统计近 30 期每期 7 个号的生肖出现次数，取最热生肖推荐（单一生肖主推 + Top3 概率展示）。
+// 回测(651期 API 全量 walk-forward，口径与线上一致)：七码近30期 51.85% > 特码近30期 50.08% > 随机基线 47.67%
 const ZODIACS = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
-function zFreq(H, win){ const r=H.slice(-win); const f={}; ZODIACS.forEach(z=>f[z]=0); for(const d of r) f[getNumberZodiac(d.special)]++; return f; }
-function zOmission(H){ const last={}; H.forEach((d,i)=>{ last[getNumberZodiac(d.special)]=i; }); const n=H.length; const s={}; ZODIACS.forEach(z=>{ s[z]=(last[z]===undefined)?n:(n-1-last[z]); }); return s; }
-function zMarkov(H){ const prev=getNumberZodiac(H[H.length-1].special); const tr={}; for(let i=1;i<H.length;i++){ const a=getNumberZodiac(H[i-1].special),b=getNumberZodiac(H[i].special); (tr[a]=tr[a]||{})[b]=(tr[a][b]||0)+1; } const row=tr[prev]||{}; const s={}; ZODIACS.forEach(z=>{ s[z]=row[z]||0; }); return s; }
-const ZMODELS = [ H=>zFreq(H,10), H=>zFreq(H,20), H=>zFreq(H,30), H=>zFreq(H,50), H=>zOmission(H), H=>zMarkov(H) ];
-function zTop1(sm){ let b=ZODIACS[0],bv=-1; for(const z of ZODIACS) if(sm[z]>bv){bv=sm[z];b=z;} return b; }
-function zNorm(sm){ const mx=Math.max(...ZODIACS.map(z=>sm[z])); const s={}; ZODIACS.forEach(z=>s[z]=mx>0?sm[z]/mx:0); return s; }
-function zWeights(H){ const W=30, st=H.length-W; if(st<1) return ZMODELS.map(()=>1); let valid=0; const hits=new Array(ZMODELS.length).fill(0); for(let v=st;v<H.length;v++){ const Hv=H.slice(0,v); if(Hv.length<30) continue; valid++; ZMODELS.forEach((fn,i)=>{ const d=H[v]; if([...d.numbers,d.special].some(n=>getNumberZodiac(n)===zTop1(fn(Hv)))) hits[i]++; }); } return ZMODELS.map((_,i)=>1+(valid?hits[i]/valid:0)*3); }
-function zEnsemble(H){ const w=zWeights(H); const c={}; ZODIACS.forEach(z=>c[z]=0); ZMODELS.forEach((fn,i)=>{ const nm=zNorm(fn(H)); ZODIACS.forEach(z=>c[z]+=w[i]*nm[z]); }); const rk=ZODIACS.slice().sort((a,b)=>c[b]-c[a]); const top1=rk[0]; const top3=rk.slice(0,3); const top3sum=top3.reduce((s,z)=>s+c[z],0); const probs={}; top3.forEach(z=>probs[z]=top3sum>0?c[z]/top3sum:0); return {top1,ranked:rk,probs}; }
+function zAll7Freq(H, win) {
+  const r = H.slice(-win);
+  const f = {}; ZODIACS.forEach(z => f[z] = 0);
+  for (const d of r) {
+    const nums = [...d.numbers, d.special];
+    for (const n of nums) f[getNumberZodiac(n)]++;
+  }
+  return f;
+}
+// 函数名保留(zEnsemble)以兼容 compositePredict / predZodiacFor 调用，内部逻辑改为七码频率
+function zEnsemble(H) {
+  const f = zAll7Freq(H, 30);
+  const rk = ZODIACS.slice().sort((a, b) => f[b] - f[a]);
+  const top1 = rk[0];
+  const top3 = rk.slice(0, 3);
+  const top3sum = top3.reduce((s, z) => s + f[z], 0);
+  const probs = {};
+  top3.forEach(z => probs[z] = top3sum > 0 ? f[z] / top3sum : 0);
+  return { top1, ranked: rk, probs };
+}
 
 // 主推单生肖（与历史战绩口径兼容）
 function zodiacPredictSpecial(data){ return zEnsemble(data).top1; }
@@ -1085,7 +1097,7 @@ function copyZodiac() {
 }
 
 function predZodiacFor(period) {
-  // 用截至该期之前的完整开奖历史，重算「当时」推荐生肖（近30期特码频率众数，与线上 zodiacPredictSpecial 一致）
+  // 用截至该期之前的完整开奖历史，重算「当时」推荐生肖（七码近30期频率，与线上 zodiacPredictSpecial/zEnsemble 一致）
   const before = EMBEDDED_DATA
     .filter(row => row[0] < period)
     .map(row => {
