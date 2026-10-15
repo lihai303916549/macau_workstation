@@ -160,17 +160,24 @@ h1 {
   <div class="grid" data-page-node-id="HWmw2nX1A0Zr5u7FgcEIjK">
     <div class="card" data-page-node-id="yupZxNfOHRPKyFHjiZfuOW">
       <div class="card-head">
+        <div class="card-title" id="composite-title" data-page-node-id="DNLoMyFuRaFUOpg1tQg23o">📊 23码预测 (尾数热号法) — 加载中...</div>
+        <button type="button" class="copy-btn" id="copy-codes-btn" onclick="copyCodes()">📋 复制</button>
+      </div>
+      <div id="composite-codes" style="display:flex; flex-wrap:wrap; gap:6px;" data-page-node-id="UomOekvylyD31E0sh1z5Ry"></div>
+    </div>
+    <div class="card" data-page-node-id="zodiacCard">
+      <div class="card-head">
         <div class="card-title" id="zodiac-title" data-page-node-id="7H5Pl8QOPFpTl7EdluTicz">🐲 生肖预测 (平特肖) — 加载中...</div>
         <button type="button" class="copy-btn" id="copy-zodiac-btn" onclick="copyZodiac()">📋 复制</button>
       </div>
-      <div style="display:flex; align-items:center; gap:12px;" data-page-node-id="UomOekvylyD31E0sh1z5Ry">
+      <div style="display:flex; align-items:center; gap:12px;" data-page-node-id="zodiacRow">
         <p style="font-size:14px; line-height:1.8; flex:1;" id="zodiac-result" data-page-node-id="yLeLAO7pfYF42xivbkIPH9"></p>
       </div>
     </div>
     <div class="card full-width" data-page-node-id="3O4EfVQSHv6SCOYPpmYH5A">
       <div class="card-title" data-page-node-id="jCFLbwP3flvCk47RDmxsIk">📊 记录战绩（从2026253期开始）</div>
       <table class="backtest-table" data-page-node-id="pdF9CBSDBrVKEeHyAgGknQ">
-        <thead data-page-node-id="KHca1nzzeu1n0PBcLkJWwJ"><tr data-page-node-id="SxXq94KdMD0mj7GBsO4oJ8"><th data-page-node-id="DDk2jVb8NRWeSGpd2m2E6X">期数</th><th data-page-node-id="zDM2p8nuWTRaAyHylsqBgZ">开奖号码</th><th data-page-node-id="monOWGMuYEB1qHAj6r8wCr">平特肖</th></tr></thead>
+        <thead data-page-node-id="KHca1nzzeu1n0PBcLkJWwJ"><tr data-page-node-id="SxXq94KdMD0mj7GBsO4oJ8"><th data-page-node-id="DDk2jVb8NRWeSGpd2m2E6X">期数</th><th data-page-node-id="zDM2p8nuWTRaAyHylsqBgZ">开奖号码</th><th data-page-node-id="9YkEzjOchZZEGmKb8URKB8">23码</th><th data-page-node-id="monOWGMuYEB1qHAj6r8wCr">平特肖</th></tr></thead>
         <tbody id="record-body" data-page-node-id="gFH02HDK3sXvTcdr8DhAPf"></tbody>
       </table>
       <div id="record-summary" style="font-size:11px; color:var(--text-muted); margin-top:8px;" data-page-node-id="db2gc3mvZ0GwjkNteYjnhc">加载中...</div>
@@ -906,42 +913,49 @@ const EMBEDDED_DATA = [
 ["2026283","2026-10-10","01,26,04,20,40,15,07"],
 ["2026284","2026-10-11","10,25,23,18,33,49,32"],
 ["2026285","2026-10-12","49,35,15,44,09,29,40"],
-["2026286","2026-10-13","15,23,02,49,44,41,28"],
-["2026287","2026-10-14","01,21,47,16,25,10,43"]
+["2026286","2026-10-13","15,23,02,49,44,41,28"]
 ];
 
 
-// ===== 平肖（生肖预测）七码频率法（换思路：把 6 个正码也纳入统计）=====
-// 平特肖命中看开奖 7 个号（6 正码 + 特码），之前只数特码 1 个球是信息损失。
-// 统计近 30 期每期 7 个号的生肖出现次数，取最热生肖推荐（单一生肖主推 + Top3 概率展示）。
-// 回测(651期 API 全量 walk-forward，口径与线上一致)：七码近30期 51.85% > 特码近30期 50.08% > 随机基线 47.67%
-const ZODIACS = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
-function zAll7Freq(H, win) {
-  const r = H.slice(-win);
-  const f = {}; ZODIACS.forEach(z => f[z] = 0);
-  for (const d of r) {
-    const nums = [...d.numbers, d.special];
-    for (const n of nums) f[getNumberZodiac(n)]++;
+// ===== 平特肖（生肖预测）：近30期特码(仅特码球)频率众数法 =====
+// 命中口径：开奖特码(特码)那 1 个球的生肖 == 推荐生肖（标准平特肖/特肖定义）
+// 全量 walk-forward(621期)：约 7.25%（随机基线 ~8.9%，1/12），长样本无显著优势
+function zodiacPredictSpecial(data) {
+  const recent30 = data.slice(-30);
+  const freq = {};
+  for (const d of recent30) {
+    const z = getNumberZodiac(d.special);
+    freq[z] = (freq[z] || 0) + 1;
   }
-  return f;
-}
-// 函数名保留(zEnsemble)以兼容 compositePredict / predZodiacFor 调用，内部逻辑改为七码频率
-function zEnsemble(H) {
-  const f = zAll7Freq(H, 30);
-  const rk = ZODIACS.slice().sort((a, b) => f[b] - f[a]);
-  const top1 = rk[0];
-  const top3 = rk.slice(0, 3);
-  const top3sum = top3.reduce((s, z) => s + f[z], 0);
-  const probs = {};
-  top3.forEach(z => probs[z] = top3sum > 0 ? f[z] / top3sum : 0);
-  return { top1, ranked: rk, probs };
+  return Object.keys(freq).reduce((a, b) => freq[a] >= freq[b] ? a : b, '鼠');
 }
 
-// 主推单生肖（与历史战绩口径兼容）
-function zodiacPredictSpecial(data){ return zEnsemble(data).top1; }
-function compositePredict(data){
-  const e = zEnsemble(data);
-  return { zodiac: e.top1, top3: e.ranked.slice(0,3), probs: e.probs };
+// ===== 23码预测：尾数热号法 =====
+// 取近30期最热 5 个尾数 → 对应全部号码 → 按出现频率取前 23 个
+// 命中口径：开奖特码(特码)落在 23 码内（标准 23 码定义）
+// 全量 walk-forward(621期)：约 44.93%（随机基线 23/49≈46.94%），长样本无显著优势
+function tailHotPredict(data) {
+  const recent30 = data.slice(-30);
+  const tailFreq = {};
+  for (const d of recent30) {
+    const nums = [...d.numbers, d.special];
+    for (const n of nums) { tailFreq[n % 10] = (tailFreq[n % 10] || 0) + 1; }
+  }
+  const sortedTails = Object.keys(tailFreq).map(Number).sort((a, b) => tailFreq[b] - tailFreq[a]);
+  const topTails = new Set(sortedTails.slice(0, 5));
+  const candidates = [];
+  for (let n = 1; n <= 49; n++) { if (topTails.has(n % 10)) candidates.push(n); }
+  const freq = {};
+  for (const d of recent30) {
+    const nums = [...d.numbers, d.special];
+    for (const n of nums) { freq[n] = (freq[n] || 0) + 1; }
+  }
+  candidates.sort((a, b) => (freq[b] || 0) - (freq[a] || 0));
+  return candidates.slice(0, 23).sort((a, b) => a - b);
+}
+
+function compositePredict(data) {
+  return { codes: tailHotPredict(data), zodiac: zodiacPredictSpecial(data) };
 }
 
 function getNextPeriod(data) {
@@ -1004,8 +1018,7 @@ const EMBEDDED_RECORDS = [
   {"period":"2026283","actual_numbers":[1,26,4,20,40,15],"actual_special":7,"code_hit":0,"zodiac_hit":1},
   {"period":"2026284","actual_numbers":[10,25,23,18,33,49],"actual_special":32,"code_hit":0,"zodiac_hit":0},
   {"period":"2026285","actual_numbers":[49,35,15,44,9,29],"actual_special":40,"code_hit":0,"zodiac_hit":0},
-  {"period":"2026286","actual_numbers":[15,23,2,49,44,41],"actual_special":28,"code_hit":0,"zodiac_hit":0},
-  {"period":"2026287","actual_numbers":[1,21,47,16,25,10],"actual_special":43,"code_hit":0,"zodiac_hit":1}
+  {"period":"2026286","actual_numbers":[15,23,2,49,44,41],"actual_special":28,"code_hit":0,"zodiac_hit":0}
 ];
 
 // 战绩有两份数据源（record.json 与 EMBEDDED_RECORDS），校验是否同步，避免只改一处
@@ -1045,23 +1058,12 @@ function setHtml(id, html) {
 }
 
 function renderComposite(pred, nextPeriod) {
-  setText('zodiac-title', '🐲 生肖预测 (平特肖·顶级集成) — 第 ' + nextPeriod + ' 期');
-  const top3 = pred.top3 || [pred.zodiac];
-  const probs = pred.probs || {};
-  let html = '<div style="font-size:22px;color:var(--green);font-weight:600;margin-bottom:6px;">主推 ' + (top3[0] || pred.zodiac) + '</div>';
-  html += '<div style="font-size:12px;color:var(--text);opacity:.85;line-height:1.95;">';
-  top3.forEach((z, i) => {
-    const p = (probs[z] || 0) * 100;
-    const w = Math.max(3, p);
-    const tag = i === 0 ? '主推' : ('次' + i);
-    html += '<div style="display:flex;align-items:center;gap:6px;">' +
-            '<span style="width:58px;text-align:right;">' + tag + '·' + z + '</span>' +
-            '<span style="flex:1;height:9px;background:var(--card);border-radius:5px;overflow:hidden;"><i style="display:block;height:100%;width:' + w.toFixed(1) + '%;background:var(--green);"></i></span>' +
-            '<span style="width:48px;">' + p.toFixed(1) + '%</span></div>';
-  });
-  html += '</div>';
-  html += '<div style="font-size:10px;opacity:.5;margin-top:5px;">※ 数值为模型综合权重占比（非命中概率）</div>';
-  setHtml('zodiac-result', html);
+  setText('composite-title', '📊 23码预测 (尾数热号法) — 第 ' + nextPeriod + ' 期');
+  setHtml('composite-codes',
+    pred.codes.map(n => '<span class="num-ball">' + pad2(n) + '</span>').join(''));
+  setText('zodiac-title', '🐲 生肖预测 (平特肖) — 第 ' + nextPeriod + ' 期');
+  setHtml('zodiac-result',
+    '<span style="color:var(--green); font-weight:600; font-size:22px;">' + pred.zodiac + '</span>');
 }
 
 function copyText(text) {
@@ -1097,9 +1099,16 @@ function copyZodiac() {
   copyText(text);
   if (text) showToast('已复制平特肖: ' + text);
 }
+function copyCodes() {
+  const el = document.getElementById('composite-codes');
+  if (!el) return;
+  const text = Array.from(el.querySelectorAll('.num-ball')).map(s => s.textContent.trim()).join(' ');
+  copyText(text);
+  if (text) showToast('已复制23码: ' + text);
+}
 
 function predZodiacFor(period) {
-  // 用截至该期之前的完整开奖历史，重算「当时」推荐生肖（七码近30期频率，与线上 zodiacPredictSpecial/zEnsemble 一致）
+  // 用截至该期之前的完整开奖历史，重算「当时」推荐生肖（近30期特码频率，与线上 zodiacPredictSpecial 一致）
   const before = EMBEDDED_DATA
     .filter(row => row[0] < period)
     .map(row => {
@@ -1110,28 +1119,49 @@ function predZodiacFor(period) {
   return zodiacPredictSpecial(before);
 }
 
+function predCodesFor(period) {
+  // 用截至该期之前的完整开奖历史，重算「当时」23码（尾数热号法，与线上 tailHotPredict 一致）
+  const before = EMBEDDED_DATA
+    .filter(row => row[0] < period)
+    .map(row => {
+      const nums = String(row[2]).split(',').map(Number);
+      return { numbers: nums.slice(0, 6), special: nums[6] };
+    });
+  if (before.length < 30) return null;
+  return tailHotPredict(before);
+}
+
 async function renderRecords() {
   const records = await loadRecords();
   const fmtZ = (n) => pad2(n) + getNumberZodiac(n);
 
   const rows = [];
-  let zodiacWin = 0, counted = 0;
+  let codeWin = 0, zodiacWin = 0, counted = 0;
   for (const r of records) {
     const nums = (r.actual_numbers || r.numbers || []).slice(0, 6);
     const special = r.actual_special !== undefined ? r.actual_special : (r.actual_numbers || r.numbers || [])[6];
     const has = nums.length === 6 && special !== undefined;
     const lotteryNum = has ? nums.map(n => fmtZ(n)).join('+') + '=' + fmtZ(special) : '?';
+    // 23码命中：特码(特码)落在 23 码内
+    const predC = predCodesFor(r.period);
+    const codeHit = (has && predC) ? (predC.includes(special) ? 1 : 0) : null;
+    // 平特肖命中：特码那 1 个球的生肖 == 推荐生肖（标准特肖定义）
     const predZ = predZodiacFor(r.period);
-    const zodiacHit = (has && predZ) ? ([...nums, special].some(n => getNumberZodiac(n) === predZ)) : null;
-    const zodiacIcon = zodiacHit === true ? '\u221a' : zodiacHit === false ? '\u00d7' : '?';
-    const zodiacColor = zodiacIcon === '\u221a' ? 'var(--green)' : zodiacIcon === '\u00d7' ? 'var(--red)' : 'var(--text)';
-    rows.push('<tr><td>' + r.period + '</td><td>' + lotteryNum + '</td><td style="color:' + zodiacColor + '">' + (predZ ? predZ + ' ' : '') + zodiacIcon + '</td></tr>');
+    const zodiacHit = (has && predZ) ? (getNumberZodiac(special) === predZ ? 1 : 0) : null;
+    const codeIcon = codeHit === 1 ? '✓' : codeHit === 0 ? '✗' : '?';
+    const zodiacIcon = zodiacHit === 1 ? '✓' : zodiacHit === 0 ? '✗' : '?';
+    const codeColor = codeIcon === '✓' ? 'var(--green)' : codeIcon === '✗' ? 'var(--red)' : 'var(--text)';
+    const zodiacColor = zodiacIcon === '✓' ? 'var(--green)' : zodiacIcon === '✗' ? 'var(--red)' : 'var(--text)';
+    rows.push('<tr><td>' + r.period + '</td><td>' + lotteryNum + '</td>' +
+      '<td style="color:' + codeColor + '">' + codeIcon + '</td>' +
+      '<td style="color:' + zodiacColor + '">' + (predZ ? predZ + ' ' : '') + zodiacIcon + '</td></tr>');
     if (has) counted++;
-    if (has && zodiacHit) zodiacWin++;
+    if (has && codeHit === 1) codeWin++;
+    if (has && zodiacHit === 1) zodiacWin++;
   }
 
   setHtml('record-body', rows.join(''));
-  setText('record-summary', '累计' + counted + '期：平特肖 ' + zodiacWin + '/' + counted + '（' + (counted > 0 ? (zodiacWin/counted*100).toFixed(1) : '0') + '%）');
+  setText('record-summary', '累计' + counted + '期：23码 ' + codeWin + '/' + counted + '（' + (counted > 0 ? (codeWin/counted*100).toFixed(1) : '0') + '%），平特肖 ' + zodiacWin + '/' + counted + '（' + (counted > 0 ? (zodiacWin/counted*100).toFixed(1) : '0') + '%）');
 }
 
 async function init() {
