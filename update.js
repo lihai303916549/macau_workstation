@@ -156,12 +156,13 @@ async function syncDraws(baseRows) {
   return { result, added, fixed };
 }
 
-// ---------- 判定平特肖命中 ----------
-// 平特肖：正码+特码共 7 个号，任一号码生肖 == 预测生肖 即中（23码已于 2026-10-13 从网页删除）
+// ---------- 判定命中 ----------
+// 23码命中：特码(特码)球落在 23 码内
+// 平特肖命中：特码那 1 个球的生肖 == 预测生肖（标准特肖定义，与网页 zodiacPredictSpecial 一致）
 function judge(pred, draw, getNumberZodiac) {
-  const zodiacHit = [...draw.numbers, draw.special]
-    .some(n => getNumberZodiac(n) === pred.zodiac) ? 1 : 0;
-  return { zodiacHit };
+  const codeHit = (pred.codes && pred.codes.includes(draw.special)) ? 1 : 0;
+  const zodiacHit = (getNumberZodiac(draw.special) === pred.zodiac) ? 1 : 0;
+  return { codeHit, zodiacHit };
 }
 
 // 下一期期号（连续期号，处理跨年边界）
@@ -211,24 +212,26 @@ function nextPeriodOf(period) {
     const p = api.compositePredict(before.map(x => ({
       period: x.period, numbers: x.numbers, special: x.special,
     })));
-    const { zodiacHit } = judge({ zodiac: p.zodiac }, d, api.getNumberZodiac);
+    const { codeHit, zodiacHit } = judge({ codes: p.codes, zodiac: p.zodiac }, d, api.getNumberZodiac);
     history.push({
       period: d.period,
       actual_numbers: d.numbers,
       actual_special: d.special,
-      code_hit: 0,
+      code_hit: codeHit,
       zodiac_hit: zodiacHit,
     });
-    log('✅ 补录', d.period, '→ 平特肖', zodiacHit ? '√' : '×', '(按当时历史重算)');
+    log('✅ 补录', d.period, '→ 23码', codeHit ? '√' : '×', '| 平特肖', zodiacHit ? '√' : '×', '(按当时历史重算)');
     changed = true;
   }
   if (!missing.length) log('（战绩无需补录）');
 
-  // 2) 写 record.json（仅统计平特肖；code_win 恒为 0，保持字段兼容）
+  // 2) 写 record.json（23码 + 平特肖 双指标）
   const total = history.length;
+  const codeWin = history.filter(h => h.code_hit === 1).length;
   const zodiacWin = history.filter(h => h.zodiac_hit === 1).length;
-  fs.writeFileSync(RECORD_PATH, JSON.stringify({ total, code_win: 0, zodiac_win: zodiacWin, history }, null, 2) + '\n', 'utf8');
-  log('战绩更新 : 累计' + total + '期 平特肖 ' + zodiacWin + '/' + total +
+  fs.writeFileSync(RECORD_PATH, JSON.stringify({ total, code_win: codeWin, zodiac_win: zodiacWin, history }, null, 2) + '\n', 'utf8');
+  log('战绩更新 : 累计' + total + '期  23码 ' + codeWin + '/' + total +
+      ' (' + (total ? (codeWin / total * 100).toFixed(1) : 0) + '%)  平特肖 ' + zodiacWin + '/' + total +
       ' (' + (total ? (zodiacWin / total * 100).toFixed(1) : 0) + '%)');
 
   // 3) 生成下一期预测（用页面同一套算法，仅生肖）
