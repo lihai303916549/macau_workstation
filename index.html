@@ -917,18 +917,33 @@ const EMBEDDED_DATA = [
 ];
 
 
-// ===== 平特肖（生肖预测）：近30期特码(仅特码球)频率众数法 =====
-// 命中口径：开奖特码(特码)那 1 个球的生肖 == 推荐生肖（标准平特肖/特肖定义）
-// 全量 walk-forward(621期)：约 7.25%（随机基线 ~8.9%，1/12），长样本无显著优势
-function zodiacPredictSpecial(data) {
-  const recent30 = data.slice(-30);
-  const freq = {};
-  for (const d of recent30) {
-    const z = getNumberZodiac(d.special);
-    freq[z] = (freq[z] || 0) + 1;
+// ===== 平肖（生肖预测）：七码(6正码+特码)频率众数法 =====
+// 命中口径：开奖 7 个号（6 正码 + 特码）任一号码生肖 == 推荐生肖
+// 这是网页一直显示的「平特肖」版本（用户习惯口径）：近30期 7 球生肖频率取最热
+// 全量 walk-forward(621期)：约 51.85%，优于随机基线 ~47.7%
+const ZODIACS = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
+function zAll7Freq(H) {
+  const r = H.slice(-30);
+  const f = {}; ZODIACS.forEach(z => f[z] = 0);
+  for (const d of r) {
+    const nums = [...d.numbers, d.special];
+    for (const n of nums) f[getNumberZodiac(n)]++;
   }
-  return Object.keys(freq).reduce((a, b) => freq[a] >= freq[b] ? a : b, '鼠');
+  return f;
 }
+// 基于七码频率，输出主推 + Top3 + 相对权重
+function zEnsemble(H) {
+  const f = zAll7Freq(H);
+  const rk = ZODIACS.slice().sort((a, b) => f[b] - f[a]);
+  const top1 = rk[0];
+  const top3 = rk.slice(0, 3);
+  const top3sum = top3.reduce((s, z) => s + f[z], 0);
+  const probs = {};
+  top3.forEach(z => probs[z] = top3sum > 0 ? f[z] / top3sum : 0);
+  return { top1, ranked: rk, probs };
+}
+// 主推单生肖（与历史战绩口径兼容 predZodiacFor）
+function zodiacPredictSpecial(data) { return zEnsemble(data).top1; }
 
 // ===== 23码预测：尾数热号法 =====
 // 取近30期最热 5 个尾数 → 对应全部号码 → 按出现频率取前 23 个
@@ -955,7 +970,8 @@ function tailHotPredict(data) {
 }
 
 function compositePredict(data) {
-  return { codes: tailHotPredict(data), zodiac: zodiacPredictSpecial(data) };
+  const e = zEnsemble(data);
+  return { codes: tailHotPredict(data), zodiac: e.top1, top3: e.ranked.slice(0,3), probs: e.probs };
 }
 
 function getNextPeriod(data) {
@@ -1062,8 +1078,22 @@ function renderComposite(pred, nextPeriod) {
   setHtml('composite-codes',
     pred.codes.map(n => '<span class="num-ball">' + pad2(n) + '</span>').join(''));
   setText('zodiac-title', '🐲 生肖预测 (平特肖) — 第 ' + nextPeriod + ' 期');
-  setHtml('zodiac-result',
-    '<span style="color:var(--green); font-weight:600; font-size:22px;">' + pred.zodiac + '</span>');
+  const top3 = pred.top3 || [pred.zodiac];
+  const probs = pred.probs || {};
+  let html = '<div style="font-size:22px;color:var(--green);font-weight:600;margin-bottom:6px;">主推 ' + (top3[0] || pred.zodiac) + '</div>';
+  html += '<div style="font-size:12px;color:var(--text);opacity:.85;line-height:1.95;">';
+  top3.forEach((z, i) => {
+    const p = (probs[z] || 0) * 100;
+    const w = Math.max(3, p);
+    const tag = i === 0 ? '主推' : ('次' + i);
+    html += '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span style="width:58px;text-align:right;">' + tag + '·' + z + '</span>' +
+            '<span style="flex:1;height:9px;background:var(--card);border-radius:5px;overflow:hidden;"><i style="display:block;height:100%;width:' + w.toFixed(1) + '%;background:var(--green);"></i></span>' +
+            '<span style="width:48px;">' + p.toFixed(1) + '%</span></div>';
+  });
+  html += '</div>';
+  html += '<div style="font-size:10px;opacity:.5;margin-top:5px;">※ 数值为近30期7球频率占比（非命中概率）</div>';
+  setHtml('zodiac-result', html);
 }
 
 function copyText(text) {
@@ -1108,7 +1138,7 @@ function copyCodes() {
 }
 
 function predZodiacFor(period) {
-  // 用截至该期之前的完整开奖历史，重算「当时」推荐生肖（近30期特码频率，与线上 zodiacPredictSpecial 一致）
+  // 用截至该期之前的完整开奖历史，重算「当时」推荐生肖（7球频率众数，与线上 zodiacPredictSpecial/zEnsemble 一致）
   const before = EMBEDDED_DATA
     .filter(row => row[0] < period)
     .map(row => {
@@ -1145,9 +1175,9 @@ async function renderRecords() {
     // 23码命中：特码(特码)落在 23 码内
     const predC = predCodesFor(r.period);
     const codeHit = (has && predC) ? (predC.includes(special) ? 1 : 0) : null;
-    // 平特肖命中：特码那 1 个球的生肖 == 推荐生肖（标准特肖定义）
+    // 平特肖命中：开奖 7 个号（6正码+特码）任一生肖 == 推荐生肖（网页一直显示的口径）
     const predZ = predZodiacFor(r.period);
-    const zodiacHit = (has && predZ) ? (getNumberZodiac(special) === predZ ? 1 : 0) : null;
+    const zodiacHit = (has && predZ) ? ([...nums, special].some(n => getNumberZodiac(n) === predZ) ? 1 : 0) : null;
     const codeIcon = codeHit === 1 ? '✓' : codeHit === 0 ? '✗' : '?';
     const zodiacIcon = zodiacHit === 1 ? '✓' : zodiacHit === 0 ? '✗' : '?';
     const codeColor = codeIcon === '✓' ? 'var(--green)' : codeIcon === '✗' ? 'var(--red)' : 'var(--text)';
