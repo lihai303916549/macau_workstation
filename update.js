@@ -162,7 +162,8 @@ async function syncDraws(baseRows) {
 function judge(pred, draw, getNumberZodiac) {
   const codeHit = (pred.codes && pred.codes.includes(draw.special)) ? 1 : 0;
   const zodiacHit = ([...draw.numbers, draw.special].some(n => getNumberZodiac(n) === pred.zodiac)) ? 1 : 0;
-  return { codeHit, zodiacHit };
+  const sixHit = (pred.six && pred.six.includes(getNumberZodiac(draw.special))) ? 1 : 0;
+  return { codeHit, zodiacHit, sixHit };
 }
 
 // 下一期期号（连续期号，处理跨年边界）
@@ -212,27 +213,30 @@ function nextPeriodOf(period) {
     const p = api.compositePredict(before.map(x => ({
       period: x.period, numbers: x.numbers, special: x.special,
     })));
-    const { codeHit, zodiacHit } = judge({ codes: p.codes, zodiac: p.zodiac }, d, api.getNumberZodiac);
+    const { codeHit, zodiacHit, sixHit } = judge({ codes: p.codes, zodiac: p.zodiac, six: p.six }, d, api.getNumberZodiac);
     history.push({
       period: d.period,
       actual_numbers: d.numbers,
       actual_special: d.special,
       code_hit: codeHit,
       zodiac_hit: zodiacHit,
+      six_hit: sixHit,
     });
-    log('✅ 补录', d.period, '→ 23码', codeHit ? '√' : '×', '| 平特肖', zodiacHit ? '√' : '×', '(按当时历史重算)');
+    log('✅ 补录', d.period, '→ 23码', codeHit ? '√' : '×', '| 平特肖', zodiacHit ? '√' : '×', '| 6肖', sixHit ? '√' : '×', '(按当时历史重算)');
     changed = true;
   }
   if (!missing.length) log('（战绩无需补录）');
 
-  // 2) 写 record.json（23码 + 平特肖 双指标）
+  // 2) 写 record.json（23码 + 平特肖 + 6肖 三指标）
   const total = history.length;
   const codeWin = history.filter(h => h.code_hit === 1).length;
   const zodiacWin = history.filter(h => h.zodiac_hit === 1).length;
-  fs.writeFileSync(RECORD_PATH, JSON.stringify({ total, code_win: codeWin, zodiac_win: zodiacWin, history }, null, 2) + '\n', 'utf8');
+  const sixWin = history.filter(h => h.six_hit === 1).length;
+  fs.writeFileSync(RECORD_PATH, JSON.stringify({ total, code_win: codeWin, zodiac_win: zodiacWin, six_win: sixWin, history }, null, 2) + '\n', 'utf8');
   log('战绩更新 : 累计' + total + '期  23码 ' + codeWin + '/' + total +
       ' (' + (total ? (codeWin / total * 100).toFixed(1) : 0) + '%)  平特肖 ' + zodiacWin + '/' + total +
-      ' (' + (total ? (zodiacWin / total * 100).toFixed(1) : 0) + '%)');
+      ' (' + (total ? (zodiacWin / total * 100).toFixed(1) : 0) + '%)  6肖 ' + sixWin + '/' + total +
+      ' (' + (total ? (sixWin / total * 100).toFixed(1) : 0) + '%)');
 
   // 3) 生成下一期预测（用页面同一套算法，仅生肖）
   const result = api.compositePredict(draws.map(d => ({
@@ -242,6 +246,7 @@ function nextPeriodOf(period) {
   const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
   fs.writeFileSync(PRED_PATH, JSON.stringify({
     zodiac: result.zodiac,
+    six: result.six,
     generated_at: today,
     next_period: nextPeriod,
     data_until: latest.period,
@@ -258,7 +263,7 @@ function nextPeriodOf(period) {
 
   const erLines = history.map(h =>
     '  {"period":"' + h.period + '","actual_numbers":[' + h.actual_numbers.join(',') + '],' +
-    '"actual_special":' + h.actual_special + ',"code_hit":' + h.code_hit + ',"zodiac_hit":' + h.zodiac_hit + '}'
+    '"actual_special":' + h.actual_special + ',"code_hit":' + h.code_hit + ',"zodiac_hit":' + h.zodiac_hit + ',"six_hit":' + h.six_hit + '}'
   );
   const erBlock = 'const EMBEDDED_RECORDS = [\n' + erLines.join(',\n') + '\n];';
   html = html.replace(/const EMBEDDED_RECORDS = \[[\s\S]*?\n\];/, erBlock);
