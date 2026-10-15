@@ -1065,10 +1065,11 @@ function setHtml(id, html) {
 }
 
 function renderComposite(pred, nextPeriod) {
-  setText('composite-title', '📊 23码预测 (尾数热号法) — 第 ' + nextPeriod + ' 期');
+  const isFused = !!(pred && pred.details);
+  setText('composite-title', '📊 23码预测 ' + (isFused ? '(前10算法融合)' : '(尾数热号法)') + ' — 第 ' + nextPeriod + ' 期');
   setHtml('composite-codes',
     pred.codes.map(n => '<span class="num-ball">' + pad2(n) + '</span>').join(''));
-  setText('zodiac-title', '🐲 生肖预测 (平特肖) — 第 ' + nextPeriod + ' 期');
+  setText('zodiac-title', '🐲 生肖预测 (平特肖' + (isFused ? '·前10算法融合' : '') + ') — 第 ' + nextPeriod + ' 期');
   // 每个生肖对应的号码（2026年：马5个号，其余11生肖各4个）
   const numsByZ = {}; ZODIACS.forEach(z => numsByZ[z] = []);
   for (let n = 1; n <= 49; n++) numsByZ[getNumberZodiac(n)].push(n);
@@ -1091,12 +1092,12 @@ function renderComposite(pred, nextPeriod) {
   top3.forEach((z, i) => {
     html += (i > 0 ? '<br>' : '') + z + '：' + numsByZ[z].map(pad2).join(' ');
   });
-  html += '<br>※ 马为5个号(01,13,25,37,49)，其余生肖各4个；上方百分比为近30期7球频率占比（非命中概率）</div>';
+  html += '<br>※ 马为5个号(01,13,25,37,49)，其余生肖各4个；上方百分比为' + (isFused ? '10种算法加权融合权重占比' : '近30期7球频率占比') + '（非命中概率）</div>';
   setHtml('zodiac-result', html);
 }
 
 function renderSixZodiac(pred, nextPeriod) {
-  setText('six-title', '🎯 6肖推荐 (特码) — 第 ' + nextPeriod + ' 期');
+  setText('six-title', '🎯 6肖推荐 (特码' + (pred && pred.details ? '·融合' : '') + ') — 第 ' + nextPeriod + ' 期');
   const six = pred.six || [];
   // 49 个号按生肖分组，方便对照购买（2026年：马5个号，其余11生肖各4个）
   const numsByZ = {}; ZODIACS.forEach(z => numsByZ[z] = []);
@@ -1244,11 +1245,21 @@ async function init() {
     allData = fetched.data;
     const lastPeriod = allData[allData.length-1].period;
     const nextPeriod = getNextPeriod(allData);
-    compositeResult = compositePredict(allData);
+    // 优先用「前10种算法加权融合」预测（update.js 每天写入 prediction_result.json）；取不到则用页面本地算法
+    let pred = null;
+    try {
+      const resp = await fetch('./prediction_result.json', { cache: 'no-store' });
+      if (resp.ok) {
+        const pj = await resp.json();
+        if (pj && pj.fused && pj.next_period === nextPeriod) pred = pj;
+      }
+    } catch (e) {}
+    compositeResult = pred || compositePredict(allData);
     renderComposite(compositeResult, nextPeriod);
     renderSixZodiac(compositeResult, nextPeriod);
     currentNextPeriod = nextPeriod;
-    setText('last-update', '数据截至 ' + lastPeriod + ' 期 · ' + new Date().toLocaleString('zh-CN') + ' · 数据源：' + fetched.source);
+    const algoLabel = pred ? '前10算法融合' : '频率法(本地)';
+    setText('last-update', '数据截至 ' + lastPeriod + ' 期 · ' + new Date().toLocaleString('zh-CN') + ' · 算法：' + algoLabel + ' · 数据源：' + fetched.source);
   } catch (e) {
     setText('progress-text', '加载失败: ' + e.message);
     console.error(e);
