@@ -174,10 +174,17 @@ h1 {
         <p style="font-size:14px; line-height:1.8; flex:1;" id="zodiac-result" data-page-node-id="yLeLAO7pfYF42xivbkIPH9"></p>
       </div>
     </div>
+    <div class="card" data-page-node-id="sixCard">
+      <div class="card-head">
+        <div class="card-title" id="six-title">🎯 6肖推荐 (特码) — 加载中...</div>
+        <button type="button" class="copy-btn" id="copy-six-btn" onclick="copySix()">📋 复制</button>
+      </div>
+      <div id="six-result" style="font-size:14px; line-height:1.9;"></div>
+    </div>
     <div class="card full-width" data-page-node-id="3O4EfVQSHv6SCOYPpmYH5A">
       <div class="card-title" data-page-node-id="jCFLbwP3flvCk47RDmxsIk">📊 记录战绩（从2026253期开始）</div>
       <table class="backtest-table" data-page-node-id="pdF9CBSDBrVKEeHyAgGknQ">
-        <thead data-page-node-id="KHca1nzzeu1n0PBcLkJWwJ"><tr data-page-node-id="SxXq94KdMD0mj7GBsO4oJ8"><th data-page-node-id="DDk2jVb8NRWeSGpd2m2E6X">期数</th><th data-page-node-id="zDM2p8nuWTRaAyHylsqBgZ">开奖号码</th><th data-page-node-id="9YkEzjOchZZEGmKb8URKB8">23码</th><th data-page-node-id="monOWGMuYEB1qHAj6r8wCr">平特肖</th></tr></thead>
+        <thead data-page-node-id="KHca1nzzeu1n0PBcLkJWwJ"><tr data-page-node-id="SxXq94KdMD0mj7GBsO4oJ8"><th data-page-node-id="DDk2jVb8NRWeSGpd2m2E6X">期数</th><th data-page-node-id="zDM2p8nuWTRaAyHylsqBgZ">开奖号码</th><th data-page-node-id="9YkEzjOchZZEGmKb8URKB8">23码</th><th data-page-node-id="monOWGMuYEB1qHAj6r8wCr">平特肖</th><th data-page-node-id="sixHead">6肖</th></tr></thead>
         <tbody id="record-body" data-page-node-id="gFH02HDK3sXvTcdr8DhAPf"></tbody>
       </table>
       <div id="record-summary" style="font-size:11px; color:var(--text-muted); margin-top:8px;" data-page-node-id="db2gc3mvZ0GwjkNteYjnhc">加载中...</div>
@@ -971,7 +978,22 @@ function tailHotPredict(data) {
 
 function compositePredict(data) {
   const e = zEnsemble(data);
-  return { codes: tailHotPredict(data), zodiac: e.top1, top3: e.ranked.slice(0,3), probs: e.probs };
+  return { codes: tailHotPredict(data), zodiac: e.top1, top3: e.ranked.slice(0,3), probs: e.probs, six: sixZodiacPredict(data) };
+}
+
+// ===== 6肖推荐（专盯特码球 / 特码，最后一球）=====
+// 命中口径：开奖特码(最后一球)的生肖 ∈ 推荐 6 肖 即中（标准「六肖」玩法）
+// 算法：近20期特码球生肖「频率(×1) + 轻微遗漏(×0.05)」加权取最热 6 个
+// 全量 walk-forward(651期)：约 48.02%（理论随机基线 6/12≈50%；特码近随机，长期趋向 50%）
+function sixZodiacPredict(data, win=20, k=6) {
+  const r = data.slice(-win);
+  const f = {}; ZODIACS.forEach(z => f[z] = 0);
+  for (const d of r) f[getNumberZodiac(d.special)]++;
+  const last = {}; ZODIACS.forEach(z => last[z] = -1e9);
+  r.forEach((d, idx) => { last[getNumberZodiac(d.special)] = idx; });
+  const miss = {}; ZODIACS.forEach(z => miss[z] = (r.length - 1) - last[z]);
+  const score = {}; ZODIACS.forEach(z => score[z] = f[z] * 1.0 + miss[z] * 0.05);
+  return ZODIACS.slice().sort((a, b) => score[b] - score[a]).slice(0, k);
 }
 
 function getNextPeriod(data) {
@@ -1062,6 +1084,21 @@ function renderComposite(pred, nextPeriod) {
   setHtml('zodiac-result', html);
 }
 
+function renderSixZodiac(pred, nextPeriod) {
+  setText('six-title', '🎯 6肖推荐 (特码) — 第 ' + nextPeriod + ' 期');
+  const six = pred.six || [];
+  // 49 个号按生肖分组，方便对照购买
+  const numsByZ = {}; ZODIACS.forEach(z => numsByZ[z] = []);
+  for (let n = 1; n <= 49; n++) numsByZ[getNumberZodiac(n)].push(n);
+  let html = '';
+  six.forEach(z => {
+    html += '<div style="margin:3px 0;"><span style="color:var(--green);font-weight:600;">' + z + '</span> ：' +
+            numsByZ[z].map(pad2).join(' ') + '</div>';
+  });
+  html += '<div style="font-size:10px;opacity:.5;margin-top:6px;">※ 仅针对特码(最后一球)：开奖特码生肖 ∈ 以上6肖即中</div>';
+  setHtml('six-result', html);
+}
+
 function copyText(text) {
   if (!text) return;
   if (navigator.clipboard && window.isSecureContext) {
@@ -1103,6 +1140,14 @@ function copyCodes() {
   if (text) showToast('已复制23码: ' + text);
 }
 
+function copySix() {
+  const el = document.getElementById('six-result');
+  if (!el) return;
+  const text = el.textContent.trim();
+  copyText(text);
+  if (text) showToast('已复制6肖: ' + text);
+}
+
 function predZodiacFor(period) {
   // 用截至该期之前的完整开奖历史，重算「当时」推荐生肖（7球频率众数，与线上 zodiacPredictSpecial/zEnsemble 一致）
   const before = EMBEDDED_DATA
@@ -1127,12 +1172,24 @@ function predCodesFor(period) {
   return tailHotPredict(before);
 }
 
+function predSixFor(period) {
+  // 用截至该期之前的完整开奖历史，重算「当时」6肖（频率+遗漏加权，与线上 sixZodiacPredict 一致）
+  const before = EMBEDDED_DATA
+    .filter(row => row[0] < period)
+    .map(row => {
+      const nums = String(row[2]).split(',').map(Number);
+      return { numbers: nums.slice(0, 6), special: nums[6] };
+    });
+  if (before.length < 20) return null;
+  return sixZodiacPredict(before);
+}
+
 async function renderRecords() {
   const records = await loadRecords();
   const fmtZ = (n) => pad2(n) + getNumberZodiac(n);
 
   const rows = [];
-  let codeWin = 0, zodiacWin = 0, counted = 0;
+  let codeWin = 0, zodiacWin = 0, sixWin = 0, counted = 0;
   for (const r of records) {
     const nums = (r.actual_numbers || r.numbers || []).slice(0, 6);
     const special = r.actual_special !== undefined ? r.actual_special : (r.actual_numbers || r.numbers || [])[6];
@@ -1144,20 +1201,27 @@ async function renderRecords() {
     // 平特肖命中：开奖 7 个号（6正码+特码）任一生肖 == 推荐生肖（网页一直显示的口径）
     const predZ = predZodiacFor(r.period);
     const zodiacHit = (has && predZ) ? ([...nums, special].some(n => getNumberZodiac(n) === predZ) ? 1 : 0) : null;
+    // 6肖命中：特码(最后一球)生肖 ∈ 推荐6肖
+    const predS = predSixFor(r.period);
+    const sixHit = (has && predS) ? (predS.includes(getNumberZodiac(special)) ? 1 : 0) : null;
     const codeIcon = codeHit === 1 ? '✓' : codeHit === 0 ? '✗' : '?';
     const zodiacIcon = zodiacHit === 1 ? '✓' : zodiacHit === 0 ? '✗' : '?';
+    const sixIcon = sixHit === 1 ? '✓' : sixHit === 0 ? '✗' : '?';
     const codeColor = codeIcon === '✓' ? 'var(--green)' : codeIcon === '✗' ? 'var(--red)' : 'var(--text)';
     const zodiacColor = zodiacIcon === '✓' ? 'var(--green)' : zodiacIcon === '✗' ? 'var(--red)' : 'var(--text)';
+    const sixColor = sixIcon === '✓' ? 'var(--green)' : sixIcon === '✗' ? 'var(--red)' : 'var(--text)';
     rows.push('<tr><td>' + r.period + '</td><td>' + lotteryNum + '</td>' +
       '<td style="color:' + codeColor + '">' + codeIcon + '</td>' +
-      '<td style="color:' + zodiacColor + '">' + (predZ ? predZ + ' ' : '') + zodiacIcon + '</td></tr>');
+      '<td style="color:' + zodiacColor + '">' + (predZ ? predZ + ' ' : '') + zodiacIcon + '</td>' +
+      '<td style="color:' + sixColor + '">' + (predS ? predS.join('/') + ' ' : '') + sixIcon + '</td></tr>');
     if (has) counted++;
     if (has && codeHit === 1) codeWin++;
     if (has && zodiacHit === 1) zodiacWin++;
+    if (has && sixHit === 1) sixWin++;
   }
 
   setHtml('record-body', rows.join(''));
-  setText('record-summary', '累计' + counted + '期：23码 ' + codeWin + '/' + counted + '（' + (counted > 0 ? (codeWin/counted*100).toFixed(1) : '0') + '%），平特肖 ' + zodiacWin + '/' + counted + '（' + (counted > 0 ? (zodiacWin/counted*100).toFixed(1) : '0') + '%）');
+  setText('record-summary', '累计' + counted + '期：23码 ' + codeWin + '/' + counted + '（' + (counted > 0 ? (codeWin/counted*100).toFixed(1) : '0') + '%），平特肖 ' + zodiacWin + '/' + counted + '（' + (counted > 0 ? (zodiacWin/counted*100).toFixed(1) : '0') + '%），6肖 ' + sixWin + '/' + counted + '（' + (counted > 0 ? (sixWin/counted*100).toFixed(1) : '0') + '%）');
 }
 
 async function init() {
@@ -1171,6 +1235,7 @@ async function init() {
     const nextPeriod = getNextPeriod(allData);
     compositeResult = compositePredict(allData);
     renderComposite(compositeResult, nextPeriod);
+    renderSixZodiac(compositeResult, nextPeriod);
     currentNextPeriod = nextPeriod;
     setText('last-update', '数据截至 ' + lastPeriod + ' 期 · ' + new Date().toLocaleString('zh-CN') + ' · 数据源：' + fetched.source);
   } catch (e) {
