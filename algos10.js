@@ -1,23 +1,19 @@
 'use strict';
 /**
- * 六子 —— 前10种算法加权融合
- * 成员（2026-10-16 全量613期 walk-forward 回测前10）：频率/专家/蒙特卡洛/马尔可夫/
- *   ARIMA/GBDT/GA/MLP/VAE/Stacking。已剔除：KNN、LSTM。
+ * 六子 —— 多算法动态加权融合（2026-10-16 定版）
+ * 成员（8个独立算法 + stacking 等权融合，共9票）：频率/专家/蒙特卡洛/ARIMA/GBDT/GA/MLP/VAE。
+ * 历史剔除：KNN、LSTM（回测垫底）；马尔可夫（消除马号数偏置后仅44.54%低于基线，证伪删除）。
  *
- * ⚠️ 2026-10-16 重大修正（用户决策「消除」）：聚合步骤（49维分数→按生肖汇总→取top）
- *   除以各生肖号码数（马÷5、其余÷4），12生肖按“平均分”公平竞争，
- *   消除“马5个号总和自动胜出”的号数偏置。
- *   消除偏置后重跑回测（平特肖7球口径，随机基线 47.86%）：
- *   Stacking 51.06% | 专家 50.90% | VAE 50.57% | GBDT 49.92% | GA 49.43%
- *   蒙特卡洛 48.94% | 频率 48.78% | MLP 48.78% | ARIMA 48.12% | 马尔可夫 44.54%
- *   → 马尔可夫跌至基线以下 3.32 点，其原超额全靠「82.4%时间推马」的偏置红利，已剔除出融合。
+ * 聚合除号数（用户决策「消除」）：49维分数→按生肖汇总时除以该生肖号码数
+ *   （马÷5、其余÷4），12生肖按"平均分"公平竞争，消除"马5个号总和自动胜出"的偏置。
  *
- * 融合方式（2026-10-16 用户决策"动态调整投票"）：**动态加权**——
- *   每天预测时对近60期做影子 walk-forward，统计各算法真实命中率，
- *   超额（命中率-0.4786）作为融合话语权（近期准的算法票权重高，差的没票）；
- *   全员不及格则退化为等权保底。
- *   回测对比（613期，平特肖7球口径）：动态加权60期 52.69% > 固定加权 51.39%
- *   > 动态30期 50.57% > 专家门控投票 50.41% > 纯一人一票 49.43%（纯投票最差，已弃用）。
+ * 融合方式（用户决策"动态调整投票"）：**动态加权**——每天预测时对近60期做影子
+ *   walk-forward，统计各成员真实命中率，超额（命中率-0.4786）作为当天话语权
+ *   （近期准的票权重高，差的没票）；全员不及格则退化为等权保底。
+ *   回测对比（613期，平特肖7球口径）：动态加权60期 52.69% > Bandit 52.20%
+ *   > 固定加权 51.39% > 动态30期 50.57% > 门控投票 50.41% > 纯一人一票 49.43%。
+ *
+ * 固定种子（mulberry32，种子20261016）：同样历史数据必得同样预测。
  */
 const STD = {1:'马',2:'蛇',3:'龙',4:'兔',5:'虎',6:'牛',7:'鼠',8:'猪',9:'狗',10:'鸡',11:'猴',12:'羊'};
 const ZODIACS = Object.values(STD);
@@ -34,13 +30,6 @@ function rng(){
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
-
-const WEIGHTS = {
-  stacking: 0.0320, expert: 0.0304, vae: 0.0271, gbdt: 0.0206, ga: 0.0157,
-  montecarlo: 0.0108, freq: 0.0092, mlp: 0.0092, arima: 0.0026,
-  // ⚠️ 马尔可夫已剔除出融合：消除号数偏置后它仅 44.54%（低于随机基线 3.32 点），
-  // 之前 54.81% 的超额几乎全部来自「82.4%时间推马」的号数偏置红利，被证伪。
-};
 
 function normalize(sc){
   let mn=Infinity,mx=-Infinity;
@@ -84,27 +73,7 @@ function algoMonteCarlo(hist, W=50){
   return hit;
 }
 
-// 4) 马尔可夫：特码一阶(0.7)+二阶(0.3)转移
-function algoMarkov(hist, W=150){
-  const win=hist.slice(-W);
-  const M1=Array.from({length:49},()=>new Array(49).fill(1));
-  for(let t=1;t<win.length;t++) M1[win[t-1].special-1][win[t].special-1]++;
-  const M2={};
-  for(let t=2;t<win.length;t++){
-    const k=win[t-2].special+'-'+win[t-1].special;
-    if(!M2[k]) M2[k]=new Array(49).fill(1);
-    M2[k][win[t].special-1]++;
-  }
-  const last=hist[hist.length-1].special;
-  const last2=hist.length>1?hist[hist.length-2].special:last;
-  const p1=M1[last-1], s1=p1.reduce((a,b)=>a+b,0);
-  const k2=last2+'-'+last, p2=M2[k2]||new Array(49).fill(1), s2=p2.reduce((a,b)=>a+b,0);
-  const sc=new Array(49);
-  for(let n=0;n<49;n++) sc[n]=0.7*p1[n]/s1+0.3*p2[n]/s2;
-  return sc;
-}
-
-// 5) ARIMA：特码序列 AR(2) → 高斯核打分
+// 4) ARIMA：特码序列 AR(2) → 高斯核打分
 function algoARIMA(hist, W=60){
   const y=hist.slice(-W).map(d=>d.special);
   let S11=0,S12=0,S13=0,S22=0,S23=0,S33=0,T1=0,T2=0,T3=0;
@@ -397,16 +366,15 @@ function predictAll(hist){
     freq: algoFreq(hist),
     expert: algoExpert(hist),
     montecarlo: algoMonteCarlo(hist),
-    markov: algoMarkov(hist),
     arima: algoARIMA(hist),
     gbdt: algoGBDT(hist),
     ga: algoGA(hist),
     mlp: algoMLP(hist),
     vae: algoVAE(hist),
   };
-  // Stacking = 独立算法归一化等权融合（第10种，作参照；markov 因偏置证伪已排除）
+  // Stacking = 8个独立算法归一化等权融合（第9个成员，作参照）
   const stack=new Float64Array(49);
-  const keys=Object.keys(raw).filter(k=>k!=='markov');
+  const keys=Object.keys(raw);
   for(const k of keys){ const s=normalize(raw[k]); for(let n=0;n<49;n++) stack[n]+=s[n]; }
   for(let n=0;n<49;n++) stack[n]/=keys.length;
   raw.stacking=Array.from(stack);
@@ -427,4 +395,4 @@ function predictAll(hist){
   return { fused: derive(fused), details, weights: W };
 }
 
-module.exports = { predictAll, derive, WEIGHTS, ZODIACS, zOf };
+module.exports = { predictAll, derive, ZODIACS, zOf };
