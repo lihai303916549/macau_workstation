@@ -1,6 +1,14 @@
 {
   "zodiac": "马",
-  "generated_at": "2026-10-14",
-  "next_period": "2026287",
-  "data_until": "2026286"
+  "six": [
+    "蛇",
+    "龙",
+    "猴",
+    "鼠",
+    "猪",
+    "兔"
+  ],
+  "generated_at": "2026-10-16",
+  "next_period": "2026289",
+  "data_until": "2026288"
 }
