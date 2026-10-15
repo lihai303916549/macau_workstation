@@ -158,10 +158,10 @@ async function syncDraws(baseRows) {
 
 // ---------- 判定命中 ----------
 // 23码命中：特码(特码)球落在 23 码内
-// 平特肖命中：特码那 1 个球的生肖 == 预测生肖（标准特肖定义，与网页 zodiacPredictSpecial 一致）
+// 平特肖命中：开奖 7 个号（6正码+特码）任一生肖 == 预测生肖（网页一直显示的口径，与 zodiacPredictSpecial 一致）
 function judge(pred, draw, getNumberZodiac) {
   const codeHit = (pred.codes && pred.codes.includes(draw.special)) ? 1 : 0;
-  const zodiacHit = (getNumberZodiac(draw.special) === pred.zodiac) ? 1 : 0;
+  const zodiacHit = ([...draw.numbers, draw.special].some(n => getNumberZodiac(n) === pred.zodiac)) ? 1 : 0;
   return { codeHit, zodiacHit };
 }
 
