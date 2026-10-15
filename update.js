@@ -238,20 +238,36 @@ function nextPeriodOf(period) {
       ' (' + (total ? (zodiacWin / total * 100).toFixed(1) : 0) + '%)  6肖 ' + sixWin + '/' + total +
       ' (' + (total ? (sixWin / total * 100).toFixed(1) : 0) + '%)');
 
-  // 3) 生成下一期预测（用页面同一套算法，仅生肖）
+  // 3) 生成下一期预测：前10种算法加权融合（权重=2026-10-16 全量613期回测超额）
+  const nextPeriod = nextPeriodOf(latest.period);
+  const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+  let fusedOut = null;
+  try {
+    const algos10 = require(path.join(__dirname, 'algos10.js'));
+    fusedOut = algos10.predictAll(draws.map(d => ({
+      period: d.period, numbers: d.numbers, special: d.special,
+    })));
+    log('10算法预测:', Object.entries(fusedOut.details).map(([k, v]) => k + '=' + v.zodiac).join(' '));
+  } catch (e) {
+    log('⚠️ 10算法融合失败，回退页面单算法:', e.message);
+  }
   const result = api.compositePredict(draws.map(d => ({
     period: d.period, numbers: d.numbers, special: d.special,
   })));
-  const nextPeriod = nextPeriodOf(latest.period);
-  const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
-  fs.writeFileSync(PRED_PATH, JSON.stringify({
-    zodiac: result.zodiac,
-    six: result.six,
+  const predObj = fusedOut ? Object.assign({}, fusedOut.fused, {
+    fused: fusedOut.fused,
+    details: fusedOut.details,
+    weights: fusedOut.weights,
     generated_at: today,
     next_period: nextPeriod,
     data_until: latest.period,
-  }, null, 2) + '\n', 'utf8');
-  log('新预测   :', nextPeriod, '| 生肖', result.zodiac);
+  }) : {
+    zodiac: result.zodiac, top3: result.top3, probs: result.probs,
+    codes: result.codes, six: result.six,
+    generated_at: today, next_period: nextPeriod, data_until: latest.period,
+  };
+  fs.writeFileSync(PRED_PATH, JSON.stringify(predObj, null, 2) + '\n', 'utf8');
+  log('新预测   :', nextPeriod, '| 融合生肖', predObj.zodiac, '| 6肖', (predObj.six || []).join('/'));
 
   // 4) 重建 EMBEDDED_DATA / EMBEDDED_RECORDS 并写回 index.html
   const edLines = draws.map(d =>
