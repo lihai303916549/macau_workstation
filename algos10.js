@@ -12,7 +12,12 @@
  *   蒙特卡洛 48.94% | 频率 48.78% | MLP 48.78% | ARIMA 48.12% | 马尔可夫 44.54%
  *   → 马尔可夫跌至基线以下 3.32 点，其原超额全靠「82.4%时间推马」的偏置红利，已剔除出融合。
  *
- * 融合权重 = 消除偏置后各算法超额（命中率 - 0.4786）。
+ * 融合方式（2026-10-16 用户决策"动态调整投票"）：**动态加权**——
+ *   每天预测时对近60期做影子 walk-forward，统计各算法真实命中率，
+ *   超额（命中率-0.4786）作为融合话语权（近期准的算法票权重高，差的没票）；
+ *   全员不及格则退化为等权保底。
+ *   回测对比（613期，平特肖7球口径）：动态加权60期 52.69% > 固定加权 51.39%
+ *   > 动态30期 50.57% > 专家门控投票 50.41% > 纯一人一票 49.43%（纯投票最差，已弃用）。
  */
 const STD = {1:'马',2:'蛇',3:'龙',4:'兔',5:'虎',6:'牛',7:'鼠',8:'猪',9:'狗',10:'鸡',11:'猴',12:'羊'};
 const ZODIACS = Object.values(STD);
@@ -336,6 +341,56 @@ function derive(sc){
   return { zodiac:zr[0].z, top3, probs, codes, six };
 }
 
+// 除号数版 top1 生肖索引（与 derive 的聚合口径一致：除以各生肖号码数）
+function top1Z(sc){
+  const zs=new Array(12).fill(0),cnt=new Array(12).fill(0);
+  for(let n=1;n<=49;n++){ zs[zOf(n)]+=sc[n-1]; cnt[zOf(n)]++; }
+  for(let z=0;z<12;z++) zs[z]/=cnt[z];
+  let t=0; for(let z=1;z<12;z++) if(zs[z]>zs[t]) t=z;
+  return t;
+}
+
+const ALGO_FNS = {
+  freq: algoFreq, gbdt: algoGBDT, montecarlo: algoMonteCarlo, arima: algoARIMA,
+  ga: algoGA, mlp: algoMLP, expert: algoExpert, vae: algoVAE,
+};
+
+/**
+ * 动态权重（2026-10-16 用户决策"动态调整投票"）：
+ * 对近 w 期做影子 walk-forward，统计每个算法（含 stacking）的真实命中率，
+ * 超额（命中率-基线0.4786）作为当天融合话语权；全不及格则退化为等权。
+ * 回测（613期，同口径）：动态加权60期 52.69% > 固定加权 51.39% > 纯投票 49.43%
+ */
+function dynamicWeights(hist, w=60){
+  const names=['freq','gbdt','montecarlo','arima','ga','mlp','expert','vae','stacking'];
+  const start=Math.max(40, hist.length-w);
+  const hits={}; names.forEach(n=>hits[n]=[0,0]);
+  const indep=Object.keys(ALGO_FNS);
+  for(let i=start;i<hist.length;i++){
+    const h=hist.slice(0,i);
+    const seven=[...hist[i].numbers, hist[i].special];
+    const sc={};
+    for(const n of indep) sc[n]=ALGO_FNS[n](h);
+    const st=new Float64Array(49);
+    for(const n of indep){ const s=normalize(sc[n]); for(let k=0;k<49;k++) st[k]+=s[k]; }
+    for(let k=0;k<49;k++) st[k]/=indep.length;
+    sc.stacking=st;
+    for(const n of names){
+      const tz=top1Z(sc[n]);
+      const hit=seven.some(x=>zOf(x)===tz)?1:0;
+      hits[n][1]++; hits[n][0]+=hit;
+    }
+  }
+  const W={}; let anyPos=false;
+  for(const n of names){
+    const rate=hits[n][1] ? hits[n][0]/hits[n][1] : 0.4786;
+    const wt=Math.max(0, rate-0.4786);
+    W[n]=wt; if(wt>0) anyPos=true;
+  }
+  if(!anyPos) names.forEach(n=>W[n]=1); // 全员不及格：等权保底
+  return W;
+}
+
 function predictAll(hist){
   rngReset(20261016);
   const raw = {
@@ -356,10 +411,11 @@ function predictAll(hist){
   for(let n=0;n<49;n++) stack[n]/=keys.length;
   raw.stacking=Array.from(stack);
 
-  // 加权融合（10种，权重=回测超额）
+  // 动态权重（近60期影子回测超额）替代固定权重——近期准的算法话语权大
+  const W = dynamicWeights(hist, 60);
   const fused=new Float64Array(49);
   let wsum=0;
-  for(const [k,w] of Object.entries(WEIGHTS)){
+  for(const [k,w] of Object.entries(W)){
     const s=normalize(raw[k]);
     for(let n=0;n<49;n++) fused[n]+=w*s[n];
     wsum+=w;
@@ -368,7 +424,7 @@ function predictAll(hist){
 
   const details={};
   for(const [k,sc] of Object.entries(raw)) details[k]=derive(sc);
-  return { fused: derive(fused), details, weights: WEIGHTS };
+  return { fused: derive(fused), details, weights: W };
 }
 
 module.exports = { predictAll, derive, WEIGHTS, ZODIACS, zOf };
