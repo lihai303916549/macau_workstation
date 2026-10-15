@@ -1,24 +1,40 @@
 'use strict';
 /**
- * 六子 —— 前10种算法（按 2026-10-16 全量613期 walk-forward 回测排名）
- * 已剔除：KNN（49.59%）、LSTM（47.15%，唯一低于基线）
+ * 六子 —— 前10种算法加权融合
+ * 成员（2026-10-16 全量613期 walk-forward 回测前10）：频率/专家/蒙特卡洛/马尔可夫/
+ *   ARIMA/GBDT/GA/MLP/VAE/Stacking。已剔除：KNN、LSTM。
  *
- * 回测（平特肖7球口径，随机基线 47.86%）：
- *   ARIMA 54.98% | 马尔可夫 54.81% | GBDT 54.16% | Stacking 53.67% | 专家指标 53.34%
- *   蒙特卡洛 52.37% | 频率统计 52.04% | VAE 51.71% | MLP 51.55% | GA 50.57%
+ * ⚠️ 2026-10-16 重大修正（用户决策「消除」）：聚合步骤（49维分数→按生肖汇总→取top）
+ *   除以各生肖号码数（马÷5、其余÷4），12生肖按“平均分”公平竞争，
+ *   消除“马5个号总和自动胜出”的号数偏置。
+ *   消除偏置后重跑回测（平特肖7球口径，随机基线 47.86%）：
+ *   Stacking 51.06% | 专家 50.90% | VAE 50.57% | GBDT 49.92% | GA 49.43%
+ *   蒙特卡洛 48.94% | 频率 48.78% | MLP 48.78% | ARIMA 48.12% | 马尔可夫 44.54%
+ *   → 马尔可夫跌至基线以下 3.32 点，其原超额全靠「82.4%时间推马」的偏置红利，已剔除出融合。
  *
- * 融合权重 = 各算法超额（命中率 - 0.4786），使排名靠前的算法话语权更大。
- * ⚠️ 已知局限（已向用户说明）：ARIMA/马尔可夫的超额含结构性偏置（AR(2)对随机序列
- *   预测值≈序列均值→高斯核固定偏中段；马尔可夫跟随上期），非真实预测力。
+ * 融合权重 = 消除偏置后各算法超额（命中率 - 0.4786）。
  */
 const STD = {1:'马',2:'蛇',3:'龙',4:'兔',5:'虎',6:'牛',7:'鼠',8:'猪',9:'狗',10:'鸡',11:'猴',12:'羊'};
 const ZODIACS = Object.values(STD);
 const ZI = {}; ZODIACS.forEach((z,i)=>ZI[z]=i);
 function zOf(n){ const k = n<=12 ? n : ((n-1)%12)+1; return ZI[STD[k]]; }
 
+// 固定种子随机数（保证同样历史数据 → 同样预测结果，可复现、不随天数漂移）
+let _rngState = 0;
+function rngReset(seed){ _rngState = seed >>> 0; }
+function rng(){
+  _rngState = (_rngState + 0x6D2B79F5) >>> 0;
+  let t = _rngState;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
 const WEIGHTS = {
-  arima: 0.0712, markov: 0.0695, gbdt: 0.0630, stacking: 0.0532, expert: 0.0548,
-  montecarlo: 0.0451, freq: 0.0418, vae: 0.0369, mlp: 0.0222, ga: 0.0238,
+  stacking: 0.0320, expert: 0.0304, vae: 0.0271, gbdt: 0.0206, ga: 0.0157,
+  montecarlo: 0.0108, freq: 0.0092, mlp: 0.0092, arima: 0.0026,
+  // ⚠️ 马尔可夫已剔除出融合：消除号数偏置后它仅 44.54%（低于随机基线 3.32 点），
+  // 之前 54.81% 的超额几乎全部来自「82.4%时间推马」的号数偏置红利，被证伪。
 };
 
 function normalize(sc){
@@ -56,7 +72,7 @@ function algoMonteCarlo(hist, W=50){
   for(const d of win) for(const n of [...d.numbers,d.special]) c[n-1]++;
   const tot=c.reduce((a,b)=>a+b,0)||1, hit=new Array(49).fill(0);
   for(let t=0;t<20000;t++){
-    const r=Math.random()*tot; let acc=0,pick=48;
+    const r=rng()*tot; let acc=0,pick=48;
     for(let n=0;n<49;n++){ acc+=c[n]; if(r<=acc){pick=n;break;} }
     hit[pick]++;
   }
@@ -192,7 +208,7 @@ function algoGA(hist){
   };
   let pop=[];
   for(let i=0;i<60;i++){
-    const idx=[...Array(49).keys()].sort(()=>Math.random()-0.5).slice(0,23);
+    const idx=[...Array(49).keys()].sort(()=>rng()-0.5).slice(0,23);
     let mask=0; for(const j of idx) mask|=(1<<j);
     pop.push(mask);
   }
@@ -200,13 +216,13 @@ function algoGA(hist){
     pop.sort((a,b)=>fitness(b)-fitness(a));
     const next=pop.slice(0,12);
     while(next.length<60){
-      const a=pop[Math.floor(Math.random()*30)], b=pop[Math.floor(Math.random()*30)];
+      const a=pop[Math.floor(rng()*30)], b=pop[Math.floor(rng()*30)];
       let child=0;
-      for(let n=0;n<49;n++){ const bit=(Math.random()<0.5?a:b)&(1<<n); child|=bit; }
-      for(let k=0;k<2;k++) child^=(1<<Math.floor(Math.random()*49));
+      for(let n=0;n<49;n++){ const bit=(rng()<0.5?a:b)&(1<<n); child|=bit; }
+      for(let k=0;k<2;k++) child^=(1<<Math.floor(rng()*49));
       let bits=[]; for(let n=0;n<49;n++) if(child&(1<<n)) bits.push(n);
-      while(bits.length>23) bits.splice(Math.floor(Math.random()*bits.length),1);
-      while(bits.length<23){ const cand=Math.floor(Math.random()*49); if(!bits.includes(cand)) bits.push(cand); }
+      while(bits.length>23) bits.splice(Math.floor(rng()*bits.length),1);
+      while(bits.length<23){ const cand=Math.floor(rng()*49); if(!bits.includes(cand)) bits.push(cand); }
       let m=0; for(const bt of bits) m|=(1<<bt);
       next.push(m);
     }
@@ -220,9 +236,9 @@ function algoGA(hist){
 
 // 8) MLP：98维特征 → 49维 sigmoid（全历史训练）
 function algoMLP(hist, epochs=15){
-  const W1=Array.from({length:32},()=>Array.from({length:98},()=>(Math.random()*2-1)*0.1));
+  const W1=Array.from({length:32},()=>Array.from({length:98},()=>(rng()*2-1)*0.1));
   const b1=new Array(32).fill(0);
-  const W2=Array.from({length:49},()=>Array.from({length:32},()=>(Math.random()*2-1)*0.1));
+  const W2=Array.from({length:49},()=>Array.from({length:32},()=>(rng()*2-1)*0.1));
   const b2=new Array(49).fill(0);
   const feat=(h)=>{
     const p20=h.slice(-20);
@@ -259,7 +275,7 @@ function algoMLP(hist, epochs=15){
 
 // 9) VAE（生成式）：频率分布→latent6→重建49维（全历史训练）
 function algoVAE(hist, epochs=15){
-  const r=()=>(Math.random()*2-1)*0.1;
+  const r=()=>(rng()*2-1)*0.1;
   const e1=Array.from({length:16},()=>Array.from({length:49},r)), eb1=new Array(16).fill(0);
   const mu=Array.from({length:6},()=>Array.from({length:16},r)), lv=Array.from({length:6},()=>Array.from({length:16},r));
   const bmu=new Array(6).fill(0), blv=new Array(6).fill(0);
@@ -276,7 +292,7 @@ function algoVAE(hist, epochs=15){
       const m=new Array(6),l=new Array(6);
       for(let j=0;j<6;j++){ let sm=bmu[j],sl=blv[j]; for(let k=0;k<16;k++){ sm+=mu[j][k]*h[k]; sl+=lv[j][k]*h[k]; } m[j]=sm; l[j]=sl; }
       const z=new Array(6);
-      for(let j=0;j<6;j++) z[j]=m[j]+(Math.random()*2-1)*Math.exp(l[j]/2);
+      for(let j=0;j<6;j++) z[j]=m[j]+(rng()*2-1)*Math.exp(l[j]/2);
       const g=new Array(16).fill(0);
       for(let j=0;j<16;j++){ let s=db1[j]; for(let k=0;k<6;k++) s+=d1[j][k]*z[k]; g[j]=Math.max(0,s); }
       const o=new Array(49);
@@ -301,9 +317,15 @@ function algoVAE(hist, epochs=15){
 }
 
 // ================= 融合与派生 =================
+// 各生肖号码数（2026年：马5个，其余11生肖各4个）——用于消除聚合号数偏置
+const ZODIAC_NUMS = ZODIACS.map(z => { let c = 0; for (let n = 1; n <= 49; n++) if (zOf(n) === ZI[z]) c++; return c; });
+
 function derive(sc){
   const zs=new Array(12).fill(0);
   for(let n=1;n<=49;n++) zs[zOf(n)]+=sc[n-1];
+  // 消除号数偏置（2026-10-16 用户决策）：除以各生肖号码数（马÷5、其余÷4），
+  // 让12生肖按“平均分”公平竞争，而非马靠5个号的总和自动胜出
+  for(let z=0;z<12;z++) zs[z]/=ZODIAC_NUMS[z];
   const zr=ZODIACS.map((z,i)=>({z,s:zs[i]})).sort((a,b)=>b.s-a.s);
   const top3=zr.slice(0,3).map(x=>x.z);
   const sum3=zr.slice(0,3).reduce((s,x)=>s+x.s,0)||1;
@@ -315,6 +337,7 @@ function derive(sc){
 }
 
 function predictAll(hist){
+  rngReset(20261016);
   const raw = {
     freq: algoFreq(hist),
     expert: algoExpert(hist),
@@ -326,9 +349,9 @@ function predictAll(hist){
     mlp: algoMLP(hist),
     vae: algoVAE(hist),
   };
-  // Stacking = 9个独立算法归一化等权融合（第10种，作参照）
+  // Stacking = 独立算法归一化等权融合（第10种，作参照；markov 因偏置证伪已排除）
   const stack=new Float64Array(49);
-  const keys=Object.keys(raw);
+  const keys=Object.keys(raw).filter(k=>k!=='markov');
   for(const k of keys){ const s=normalize(raw[k]); for(let n=0;n<49;n++) stack[n]+=s[n]; }
   for(let n=0;n<49;n++) stack[n]/=keys.length;
   raw.stacking=Array.from(stack);
