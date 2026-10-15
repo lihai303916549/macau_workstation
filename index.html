@@ -1069,36 +1069,44 @@ function renderComposite(pred, nextPeriod) {
   setHtml('composite-codes',
     pred.codes.map(n => '<span class="num-ball">' + pad2(n) + '</span>').join(''));
   setText('zodiac-title', '🐲 生肖预测 (平特肖) — 第 ' + nextPeriod + ' 期');
+  // 每个生肖对应的号码（2026年：马5个号，其余11生肖各4个）
+  const numsByZ = {}; ZODIACS.forEach(z => numsByZ[z] = []);
+  for (let n = 1; n <= 49; n++) numsByZ[getNumberZodiac(n)].push(n);
   const top3 = pred.top3 || [pred.zodiac];
   const probs = pred.probs || {};
-  let html = '<div style="font-size:22px;color:var(--green);font-weight:600;margin-bottom:6px;">主推 ' + (top3[0] || pred.zodiac) + '</div>';
+  const top1 = top3[0] || pred.zodiac;
+  let html = '<div style="font-size:22px;color:var(--green);font-weight:600;margin-bottom:6px;">主推 ' + top1 + '（' + numsByZ[top1].length + '个号）</div>';
   html += '<div style="font-size:12px;color:var(--text);opacity:.85;line-height:1.95;">';
   top3.forEach((z, i) => {
     const p = (probs[z] || 0) * 100;
     const w = Math.max(3, p);
     const tag = i === 0 ? '主推' : ('次' + i);
     html += '<div style="display:flex;align-items:center;gap:6px;">' +
-            '<span style="width:58px;text-align:right;">' + tag + '·' + z + '</span>' +
+            '<span style="width:76px;text-align:right;">' + tag + '·' + z + '(' + numsByZ[z].length + '号)</span>' +
             '<span style="flex:1;height:9px;background:var(--card);border-radius:5px;overflow:hidden;"><i style="display:block;height:100%;width:' + w.toFixed(1) + '%;background:var(--green);"></i></span>' +
             '<span style="width:48px;">' + p.toFixed(1) + '%</span></div>';
   });
   html += '</div>';
-  html += '<div style="font-size:10px;opacity:.5;margin-top:5px;">※ 数值为近30期7球频率占比（非命中概率）</div>';
+  html += '<div style="font-size:10px;opacity:.65;margin-top:6px;line-height:1.75;">';
+  top3.forEach((z, i) => {
+    html += (i > 0 ? '<br>' : '') + z + '：' + numsByZ[z].map(pad2).join(' ');
+  });
+  html += '<br>※ 马为5个号(01,13,25,37,49)，其余生肖各4个；上方百分比为近30期7球频率占比（非命中概率）</div>';
   setHtml('zodiac-result', html);
 }
 
 function renderSixZodiac(pred, nextPeriod) {
   setText('six-title', '🎯 6肖推荐 (特码) — 第 ' + nextPeriod + ' 期');
   const six = pred.six || [];
-  // 49 个号按生肖分组，方便对照购买
+  // 49 个号按生肖分组，方便对照购买（2026年：马5个号，其余11生肖各4个）
   const numsByZ = {}; ZODIACS.forEach(z => numsByZ[z] = []);
   for (let n = 1; n <= 49; n++) numsByZ[getNumberZodiac(n)].push(n);
   let html = '';
   six.forEach(z => {
-    html += '<div style="margin:3px 0;"><span style="color:var(--green);font-weight:600;">' + z + '</span> ：' +
+    html += '<div style="margin:3px 0;"><span style="color:var(--green);font-weight:600;">' + z + '(' + numsByZ[z].length + '号)</span> ：' +
             numsByZ[z].map(pad2).join(' ') + '</div>';
   });
-  html += '<div style="font-size:10px;opacity:.5;margin-top:6px;">※ 仅针对特码(最后一球)：开奖特码生肖 ∈ 以上6肖即中</div>';
+  html += '<div style="font-size:10px;opacity:.65;margin-top:6px;">※ 马为5个号(01,13,25,37,49)，其余生肖各4个；仅针对特码(最后一球)，开奖特码生肖 ∈ 以上6肖即中</div>';
   setHtml('six-result', html);
 }
 
