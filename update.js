@@ -1,8 +1,9 @@
 /**
  * 六子预测系统 —— 自动更新脚本（本地 / GitHub Actions 通用）
  *
- * 数据源：history.macaumarksix.com 的单期查询接口 /history/macaujc/expect/<期号>
- *   —— 年份接口 /history/macaujc2/y/2026 已损坏（稳定返回 2025 数据），故改用单期查询。
+ * 数据源：history.macaumarksix.com 的单期查询接口 /history/macaujc2/expect/<期号>
+ *   —— macaujc2 = 「新澳门六合彩」（21:32开奖），用户 2026-10-17 确认要的是这套；
+ *      旧的 macaujc（22:32开奖，特码04那期那套）=「澳门六合彩」，已弃用。
  * 做法：用 vm 加载 index.html 里的算法，保证与页面 100% 一致（不另写一套算法）。
  *
  * 流程：
@@ -31,8 +32,8 @@ const HTML_PATH = path.join(DEPLOY, 'index.html');
 const RECORD_PATH = path.join(DEPLOY, 'record.json');
 const PRED_PATH = path.join(DEPLOY, 'prediction_result.json');
 
-// 单期查询接口（年份接口已坏，必须用单期）
-const EXP = 'https://history.macaumarksix.com/history/macaujc/expect/';
+// 单期查询接口（macaujc2 = 新澳门六合彩，21:32开奖；2026-10-17 全量切换）
+const EXP = 'https://history.macaumarksix.com/history/macaujc2/expect/';
 
 const UPLOAD = process.argv.includes('--upload');
 
