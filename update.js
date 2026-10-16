@@ -200,7 +200,7 @@ function nextPeriodOf(period) {
   log('存档预测 :', pred.next_period, '| 生肖', pred.zodiac);
 
   // 1) 补录所有缺失的期（用「该期之前的真实历史」重跑算法生成预测，再判定命中）
-  const FIRST_PERIOD = '2026289';
+  const FIRST_PERIOD = '2026290';
   const missing = draws
     .filter(d => !history.some(h => h.period === d.period))
     .filter(d => lastRec ? (d.period > lastRec.period) : (d.period >= FIRST_PERIOD))
