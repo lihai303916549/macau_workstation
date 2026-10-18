@@ -124,6 +124,9 @@ h1 {
 .backtest-table th { color: var(--text-muted); font-weight: 500; }
 .backtest-table tr:hover { background: rgba(88, 166, 255, 0.05); }
 .bet-table th { position: sticky; top: 0; background: var(--card); z-index: 1; }
+.hide-btn { padding: 2px 8px; font-size: 11px; border: 1px solid var(--border); background: var(--card); color: var(--text-muted); border-radius: 4px; cursor: pointer; white-space: nowrap; }
+.hide-btn:hover { color: var(--red); border-color: var(--red); }
+.restore-btn { margin-left: 10px; padding: 2px 10px; font-size: 11px; border: 1px solid var(--accent); background: transparent; color: var(--accent); border-radius: 4px; cursor: pointer; }
 
 .full-width { grid-column: 1 / -1; }
 
@@ -185,21 +188,23 @@ h1 {
     <div class="card full-width" data-page-node-id="3O4EfVQSHv6SCOYPpmYH5A">
       <div class="card-title" data-page-node-id="jCFLbwP3flvCk47RDmxsIk">📊 记录战绩（从2026253期开始）</div>
       <table class="backtest-table" data-page-node-id="pdF9CBSDBrVKEeHyAgGknQ">
-        <thead data-page-node-id="KHca1nzzeu1n0PBcLkJWwJ"><tr data-page-node-id="SxXq94KdMD0mj7GBsO4oJ8"><th data-page-node-id="DDk2jVb8NRWeSGpd2m2E6X">期数</th><th data-page-node-id="zDM2p8nuWTRaAyHylsqBgZ">开奖号码</th><th data-page-node-id="9YkEzjOchZZEGmKb8URKB8">23码</th><th data-page-node-id="monOWGMuYEB1qHAj6r8wCr">平特肖</th><th data-page-node-id="sixHead">6肖</th></tr></thead>
+        <thead data-page-node-id="KHca1nzzeu1n0PBcLkJWwJ"><tr data-page-node-id="SxXq94KdMD0mj7GBsO4oJ8"><th data-page-node-id="DDk2jVb8NRWeSGpd2m2E6X">期数</th><th data-page-node-id="zDM2p8nuWTRaAyHylsqBgZ">开奖号码</th><th data-page-node-id="9YkEzjOchZZEGmKb8URKB8">23码</th><th data-page-node-id="monOWGMuYEB1qHAj6r8wCr">平特肖</th><th data-page-node-id="sixHead">6肖</th><th data-page-node-id="recHideHead">隐藏</th></tr></thead>
         <tbody id="record-body" data-page-node-id="gFH02HDK3sXvTcdr8DhAPf"></tbody>
       </table>
       <div id="record-summary" style="font-size:11px; color:var(--text-muted); margin-top:8px;" data-page-node-id="db2gc3mvZ0GwjkNteYjnhc">加载中...</div>
+      <div style="margin-top:6px;"><button type="button" id="rec-restore" class="restore-btn" style="display:none;" onclick="restoreRecords()"></button></div>
     </div>
     <div class="card full-width" data-page-node-id="betCard">
       <div class="card-title">💰 平肖投注计划表（每晚自动对奖更新）</div>
       <div class="stats-row" id="bet-kpi" style="margin-bottom:12px;">加载中...</div>
       <div style="max-height:420px; overflow:auto; border:1px solid var(--border); border-radius:6px;">
-        <table class="backtest-table bet-table" style="min-width:700px;">
-          <thead><tr><th>期数</th><th>生肖</th><th>赔率</th><th>押肖数</th><th>赢亏</th><th>单价投注额</th><th>盈亏</th><th>累计本金</th><th>下注</th></tr></thead>
+        <table class="backtest-table bet-table" style="min-width:760px;">
+          <thead><tr><th>期数</th><th>生肖</th><th>赔率</th><th>押肖数</th><th>赢亏</th><th>单价投注额</th><th>盈亏</th><th>累计本金</th><th>下注</th><th>隐藏</th></tr></thead>
           <tbody id="bet-body"></tbody>
         </table>
       </div>
       <div id="bet-summary" style="font-size:11px; color:var(--text-muted); margin-top:8px;"></div>
+      <div style="margin-top:6px;"><button type="button" id="bet-restore" class="restore-btn" style="display:none;" onclick="restoreBet()"></button></div>
     </div>
   </div>
 </div>
@@ -1210,6 +1215,45 @@ function predSixFor(period) {
   return sixZodiacPredict(before);
 }
 
+// ===== 每期隐藏按钮（localStorage 记忆，刷新/每晚数据更新后仍生效）=====
+var HIDE_KEY_REC = 'lz6_hidden_rec';
+var HIDE_KEY_BET = 'lz6_hidden_bet';
+function getHiddenList(key) {
+  try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return []; }
+}
+function saveHiddenList(key, arr) {
+  try { localStorage.setItem(key, JSON.stringify(arr)); } catch (e) {}
+}
+function hideRowBtn(key, period, btn) {
+  var arr = getHiddenList(key);
+  if (arr.indexOf(period) < 0) { arr.push(period); saveHiddenList(key, arr); }
+  var tr = btn.closest ? btn.closest('tr') : null;
+  if (tr) tr.style.display = 'none';
+  updateRestoreBtn(key);
+}
+function applyHiddenRows(key, tbody) {
+  var arr = getHiddenList(key);
+  for (var i = 0; i < arr.length; i++) {
+    var tr = tbody.querySelector('tr[data-period="' + arr[i] + '"]');
+    if (tr) tr.style.display = 'none';
+  }
+  updateRestoreBtn(key);
+}
+function updateRestoreBtn(key) {
+  var arr = getHiddenList(key);
+  var el = document.getElementById(key === HIDE_KEY_REC ? 'rec-restore' : 'bet-restore');
+  if (!el) return;
+  if (arr.length > 0) {
+    el.style.display = '';
+    el.textContent = '↩ 恢复 ' + arr.length + ' 期';
+  } else {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+}
+function restoreRecords() { saveHiddenList(HIDE_KEY_REC, []); renderRecords(); }
+function restoreBet() { saveHiddenList(HIDE_KEY_BET, []); loadBetTable(); }
+
 async function renderRecords() {
   const records = await loadRecords();
   const fmtZ = (n) => pad2(n) + getNumberZodiac(n);
@@ -1236,10 +1280,11 @@ async function renderRecords() {
     const codeColor = codeIcon === '✓' ? 'var(--green)' : codeIcon === '✗' ? 'var(--red)' : 'var(--text)';
     const zodiacColor = zodiacIcon === '✓' ? 'var(--green)' : zodiacIcon === '✗' ? 'var(--red)' : 'var(--text)';
     const sixColor = sixIcon === '✓' ? 'var(--green)' : sixIcon === '✗' ? 'var(--red)' : 'var(--text)';
-    rows.push('<tr><td>' + r.period + '</td><td>' + lotteryNum + '</td>' +
+    rows.push('<tr data-period="' + r.period + '"><td>' + r.period + '</td><td>' + lotteryNum + '</td>' +
       '<td style="color:' + codeColor + '">' + codeIcon + '</td>' +
       '<td style="color:' + zodiacColor + '">' + (predZ ? predZ + ' ' : '') + zodiacIcon + '</td>' +
-      '<td style="color:' + sixColor + '">' + (predS ? predS.join('/') + ' ' : '') + sixIcon + '</td></tr>');
+      '<td style="color:' + sixColor + '">' + (predS ? predS.join('/') + ' ' : '') + sixIcon + '</td>' +
+      '<td><button type="button" class="hide-btn" title="隐藏本期" onclick="hideRowBtn(\'' + HIDE_KEY_REC + '\',' + r.period + ',this)">隐藏</button></td></tr>');
     if (has) counted++;
     if (has && codeHit === 1) codeWin++;
     if (has && zodiacHit === 1) zodiacWin++;
@@ -1247,6 +1292,7 @@ async function renderRecords() {
   }
 
   setHtml('record-body', rows.join(''));
+  applyHiddenRows(HIDE_KEY_REC, document.getElementById('record-body'));
   setText('record-summary', '累计' + counted + '期：23码 ' + codeWin + '/' + counted + '（' + (counted > 0 ? (codeWin/counted*100).toFixed(1) : '0') + '%），平特肖 ' + zodiacWin + '/' + counted + '（' + (counted > 0 ? (zodiacWin/counted*100).toFixed(1) : '0') + '%），6肖 ' + sixWin + '/' + counted + '（' + (counted > 0 ? (sixWin/counted*100).toFixed(1) : '0') + '%）');
 }
 
@@ -1285,7 +1331,7 @@ async function loadBetTable() {
     const rc = x.result === '赢' ? 'var(--green)' : x.result === '亏' ? 'var(--red)' : 'var(--text-muted)';
     const pc = (typeof x.pnl === 'number') ? (x.pnl >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text-muted)';
     const zc = x.zodiac === '猫' ? 'var(--red)' : 'var(--text)';
-    return '<tr><td>' + x.period + '</td>' +
+    return '<tr data-period="' + x.period + '"><td>' + x.period + '</td>' +
       '<td style="color:' + zc + '">' + (x.zodiac || '—') + '</td>' +
       '<td>' + (x.odds === null || x.odds === undefined ? '—' : Number(x.odds).toFixed(1)) + '</td>' +
       '<td>' + (x.count === null || x.count === undefined ? '—' : x.count) + '</td>' +
@@ -1293,8 +1339,10 @@ async function loadBetTable() {
       '<td>' + fmtBetNum(x.stake) + '</td>' +
       '<td style="color:' + pc + '">' + (typeof x.pnl === 'number' ? (x.pnl >= 0 ? '+' : '') + x.pnl.toLocaleString('zh-CN') : x.pnl) + '</td>' +
       '<td style="font-weight:600;">' + fmtBetNum(x.capital) + '</td>' +
-      '<td>' + (x.bet || '—') + '</td></tr>';
+      '<td>' + (x.bet || '—') + '</td>' +
+      '<td><button type="button" class="hide-btn" title="隐藏本期" onclick="hideRowBtn(\'' + HIDE_KEY_BET + '\',' + x.period + ',this)">隐藏</button></td></tr>';
   }).join('');
+  applyHiddenRows(HIDE_KEY_BET, body);
   if (sumEl) sumEl.textContent = '数据更新于 ' + (data.generated_at || '—') + ' · 与桌面 Excel「彩票系统-平肖计算表」每晚同步 · 起始本金 ' + data.capital_start + ' / 风险值 ' + data.risk;
 }
 
