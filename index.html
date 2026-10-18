@@ -123,6 +123,7 @@ h1 {
 }
 .backtest-table th { color: var(--text-muted); font-weight: 500; }
 .backtest-table tr:hover { background: rgba(88, 166, 255, 0.05); }
+.bet-table th { position: sticky; top: 0; background: var(--card); z-index: 1; }
 
 .full-width { grid-column: 1 / -1; }
 
@@ -188,6 +189,17 @@ h1 {
         <tbody id="record-body" data-page-node-id="gFH02HDK3sXvTcdr8DhAPf"></tbody>
       </table>
       <div id="record-summary" style="font-size:11px; color:var(--text-muted); margin-top:8px;" data-page-node-id="db2gc3mvZ0GwjkNteYjnhc">加载中...</div>
+    </div>
+    <div class="card full-width" data-page-node-id="betCard">
+      <div class="card-title">💰 平肖投注计划表（每晚自动对奖更新）</div>
+      <div class="stats-row" id="bet-kpi" style="margin-bottom:12px;">加载中...</div>
+      <div style="max-height:420px; overflow:auto; border:1px solid var(--border); border-radius:6px;">
+        <table class="backtest-table bet-table" style="min-width:780px;">
+          <thead><tr><th>期数</th><th>生肖</th><th>赔率</th><th>押肖数</th><th>赢亏</th><th>单价</th><th>投注额</th><th>盈亏</th><th>累计本金</th><th>下注</th></tr></thead>
+          <tbody id="bet-body"></tbody>
+        </table>
+      </div>
+      <div id="bet-summary" style="font-size:11px; color:var(--text-muted); margin-top:8px;"></div>
     </div>
   </div>
 </div>
@@ -1238,9 +1250,59 @@ async function renderRecords() {
   setText('record-summary', '累计' + counted + '期：23码 ' + codeWin + '/' + counted + '（' + (counted > 0 ? (codeWin/counted*100).toFixed(1) : '0') + '%），平特肖 ' + zodiacWin + '/' + counted + '（' + (counted > 0 ? (zodiacWin/counted*100).toFixed(1) : '0') + '%），6肖 ' + sixWin + '/' + counted + '（' + (counted > 0 ? (sixWin/counted*100).toFixed(1) : '0') + '%）');
 }
 
+// ===== 平肖投注计划表（桌面 Excel 每晚由 export_table.py 导出 bet_table.json）=====
+function fmtBetNum(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  if (typeof v === 'number') return v.toLocaleString('zh-CN');
+  return v;
+}
+async function loadBetTable() {
+  const body = document.getElementById('bet-body');
+  const kpiEl = document.getElementById('bet-kpi');
+  const sumEl = document.getElementById('bet-summary');
+  if (!body) return;
+  let data = null;
+  try {
+    const resp = await fetch('./bet_table.json', { cache: 'no-store' });
+    if (resp.ok) data = await resp.json();
+  } catch (e) {}
+  if (!data || !data.rows || !data.rows.length) {
+    if (kpiEl) kpiEl.textContent = '暂无数据（每晚21:40自动对奖后生成）';
+    return;
+  }
+  const k = data.kpi || {};
+  const pnlColor = (k.total_pnl >= 0) ? 'var(--green)' : 'var(--red)';
+  const kpis = [
+    ['交易笔数', k.trades, 'var(--accent)'],
+    ['平均中率', (k.win_rate === null || k.win_rate === undefined) ? '—' : (k.win_rate * 100).toFixed(1) + '%', 'var(--accent)'],
+    ['累计盈亏', (k.total_pnl >= 0 ? '+' : '') + Number(k.total_pnl).toLocaleString('zh-CN'), pnlColor],
+    ['现在总额', Number(k.current).toLocaleString('zh-CN'), 'var(--accent)'],
+  ];
+  if (kpiEl) kpiEl.innerHTML = kpis.map(function (t) {
+    return '<div class="stat-item"><span class="label">' + t[0] + '</span> <span class="value" style="color:' + t[2] + '">' + t[1] + '</span></div>';
+  }).join('');
+  body.innerHTML = data.rows.map(function (x) {
+    const rc = x.result === '赢' ? 'var(--green)' : x.result === '亏' ? 'var(--red)' : 'var(--text-muted)';
+    const pc = (typeof x.pnl === 'number') ? (x.pnl >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text-muted)';
+    const zc = x.zodiac === '猫' ? 'var(--red)' : 'var(--text)';
+    return '<tr><td>' + x.period + '</td>' +
+      '<td style="color:' + zc + '">' + (x.zodiac || '—') + '</td>' +
+      '<td>' + (x.odds === null || x.odds === undefined ? '—' : Number(x.odds).toFixed(1)) + '</td>' +
+      '<td>' + (x.count === null || x.count === undefined ? '—' : x.count) + '</td>' +
+      '<td style="color:' + rc + '; font-weight:600;">' + x.result + '</td>' +
+      '<td>' + fmtBetNum(x.unit) + '</td><td>' + fmtBetNum(x.stake) + '</td>' +
+      '<td style="color:' + pc + '">' + (typeof x.pnl === 'number' ? (x.pnl >= 0 ? '+' : '') + x.pnl.toLocaleString('zh-CN') : x.pnl) + '</td>' +
+      '<td style="font-weight:600;">' + fmtBetNum(x.capital) + '</td>' +
+      '<td>' + (x.bet || '—') + '</td></tr>';
+  }).join('');
+  if (sumEl) sumEl.textContent = '数据更新于 ' + (data.generated_at || '—') + ' · 与桌面 Excel「彩票系统-平肖计算表」每晚同步 · 起始本金 ' + data.capital_start + ' / 风险值 ' + data.risk;
+}
+
 async function init() {
   // 先渲染战绩（来自本地 EMBEDDED_RECORDS，不依赖网络）
   await renderRecords();
+  // 渲染平肖投注计划表（桌面 Excel 每晚导出，失败不影响主页面）
+  try { await loadBetTable(); } catch (e) { console.warn('bet table load failed:', e); }
 
   try {
     const fetched = await fetchData();
