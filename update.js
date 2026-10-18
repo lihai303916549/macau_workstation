@@ -4,15 +4,16 @@
  * 数据源：history.macaumarksix.com 的单期查询接口 /history/macaujc2/expect/<期号>
  *   —— macaujc2 = 「新澳门六合彩」（21:32开奖），用户 2026-10-17 确认要的是这套；
  *      旧的 macaujc（22:32开奖，特码04那期那套）=「澳门六合彩」，已弃用。
- * 做法：用 vm 加载 index.html 里的算法，保证与页面 100% 一致（不另写一套算法）。
  *
- * 流程：
+ * 流程（v2 事前预测制，用户2026-10-19定版）：
  *   1. 读取现有 EMBEDDED_DATA 作为基线（已是全量历史）
  *   2. 单期接口增量追加缺失的最新期（最多查到未来 40 期，连续 3 期无数据即停）
  *   3. 对末尾 5 期做核对（防历史数据污染复发；仅当 2/2 一致且与本地不同才覆盖）
- *   4. 用上一期存档预测判定平特肖命中
- *   5. 重写 EMBEDDED_DATA / EMBEDDED_RECORDS，重算下一期预测
- *   6. 写回 index.html / record.json / prediction_result.json
+ *   4. 按实判定：对已开奖但未记录的期，从 predictions.json「事前预测存档」取当时预测，
+ *      用 algos10.judgeDraw 判定命中——★严禁事后重算★（存档没有该期预测则跳过不补）
+ *   5. 事前预测下一期：algos10 v2 十模型 Ensemble（7号码级模型 + Walk-forward 动态权重），
+ *      写 prediction_result.json，并追加进 predictions.json 存档（明晚开奖后按它判定）
+ *   6. 写回 index.html / record.json / prediction_result.json / predictions.json
  *
  * 用法：
  *   node update.js            # 只更新本地文件
@@ -31,6 +32,7 @@ const DEPLOY = fs.existsSync(path.join(ROOT, 'vercel_deploy'))
 const HTML_PATH = path.join(DEPLOY, 'index.html');
 const RECORD_PATH = path.join(DEPLOY, 'record.json');
 const PRED_PATH = path.join(DEPLOY, 'prediction_result.json');
+const PRED_ARCHIVE_PATH = path.join(DEPLOY, 'predictions.json'); // 事前预测存档（按期号累积）
 
 // 单期查询接口（macaujc2 = 新澳门六合彩，21:32开奖；2026-10-17 全量切换）
 const EXP = 'https://history.macaumarksix.com/history/macaujc2/expect/';
@@ -157,15 +159,11 @@ async function syncDraws(baseRows) {
   return { result, added, fixed };
 }
 
-// ---------- 判定命中 ----------
-// 23码命中：特码(特码)球落在 23 码内
-// 平特肖命中：开奖 7 个号（6正码+特码）任一生肖 == 预测生肖（网页一直显示的口径，与 zodiacPredictSpecial 一致）
-function judge(pred, draw, getNumberZodiac) {
-  const codeHit = (pred.codes && pred.codes.includes(draw.special)) ? 1 : 0;
-  const zodiacHit = ([...draw.numbers, draw.special].some(n => getNumberZodiac(n) === pred.zodiac)) ? 1 : 0;
-  const sixHit = (pred.six && pred.six.includes(getNumberZodiac(draw.special))) ? 1 : 0;
-  return { codeHit, zodiacHit, sixHit };
-}
+// ---------- 判定命中（D4 多属性命中判定，统一走 algos10.judgeDraw）----------
+// code_hit  ：特码 ∈ 预测23码
+// zodiac_hit：开奖7球任一生肖 == 预测主推生肖
+// six_hit   ：特码生肖 ∈ 预测6肖
+// 注意：只用「事前预测」判定，绝不做事后重算（用户2026-10-19铁律）
 
 // 下一期期号（连续期号，处理跨年边界）
 function nextPeriodOf(period) {
@@ -179,6 +177,8 @@ function nextPeriodOf(period) {
 (async () => {
   log('===== 六子自动更新 =====');
   const api = loadPageAlgorithms();
+  // algos10 v2 十模型引擎（事前预测 + D4多属性命中判定）
+  const algos10 = require(path.join(__dirname, 'algos10.js'));
 
   let html = fs.readFileSync(HTML_PATH, 'utf8');
   const baseRows = readEmbeddedData(html);
@@ -199,8 +199,11 @@ function nextPeriodOf(period) {
   log('战绩末期 :', lastRec ? lastRec.period : '(空)');
   log('存档预测 :', pred.next_period, '| 生肖', pred.zodiac);
 
-  // 1) 补录所有缺失的期（用「该期之前的真实历史」重跑算法生成预测，再判定命中）
+  // 1) 按实判定：对已开奖未记录的期，从事前预测存档（predictions.json）取「当时」的预测判定
+  //    ★用户铁律（2026-10-19）：只做事前预测，事后按实记录，严禁用现在历史重算过去★
   const FIRST_PERIOD = '2026290';
+  let predArchive = {};
+  try { predArchive = JSON.parse(fs.readFileSync(PRED_ARCHIVE_PATH, 'utf8')); } catch (e) {}
   const missing = draws
     .filter(d => !history.some(h => h.period === d.period))
     .filter(d => lastRec ? (d.period > lastRec.period) : (d.period >= FIRST_PERIOD))
@@ -209,21 +212,26 @@ function nextPeriodOf(period) {
 
   let changed = false;
   for (const d of missing) {
-    const before = draws.filter(x => x.period < d.period);
-    if (before.length < 30) continue;   // 历史太少，算法不可靠，跳过
-    const p = api.compositePredict(before.map(x => ({
-      period: x.period, numbers: x.numbers, special: x.special,
-    })));
-    const { codeHit, zodiacHit, sixHit } = judge({ codes: p.codes, zodiac: p.zodiac, six: p.six }, d, api.getNumberZodiac);
+    const saved = predArchive[d.period];   // 事前预测存档
+    if (!saved || !saved.zodiac) {
+      log('⏭ 跳过', d.period, '（事前无预测存档，按实不补录——严禁事后重算）');
+      continue;
+    }
+    const { codeHit, zodiacHit, sixHit } = algos10.judgeDraw(saved, d);
     history.push({
       period: d.period,
       actual_numbers: d.numbers,
       actual_special: d.special,
+      pred_zodiac: saved.zodiac,
+      pred_top3: saved.top3 || null,
+      pred_six: saved.six || null,
+      pred_codes: saved.codes || null,
       code_hit: codeHit,
       zodiac_hit: zodiacHit,
       six_hit: sixHit,
     });
-    log('✅ 补录', d.period, '→ 23码', codeHit ? '√' : '×', '| 平特肖', zodiacHit ? '√' : '×', '| 6肖', sixHit ? '√' : '×', '(按当时历史重算)');
+    log('✅ 按实判定', d.period, '→ 事前预测', saved.zodiac,
+        '| 23码', codeHit ? '√' : '×', '| 平特肖', zodiacHit ? '√' : '×', '| 6肖', sixHit ? '√' : '×');
     changed = true;
   }
   if (!missing.length) log('（战绩无需补录）');
@@ -239,18 +247,18 @@ function nextPeriodOf(period) {
       ' (' + (total ? (zodiacWin / total * 100).toFixed(1) : 0) + '%)  6肖 ' + sixWin + '/' + total +
       ' (' + (total ? (sixWin / total * 100).toFixed(1) : 0) + '%)');
 
-  // 3) 生成下一期预测：前10种算法加权融合（权重=2026-10-16 全量613期回测超额）
+  // 3) 事前预测下一期：algos10 v2 十模型 Ensemble（7号码级 + Walk-forward 动态权重）
   const nextPeriod = nextPeriodOf(latest.period);
   const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
   let fusedOut = null;
   try {
-    const algos10 = require(path.join(__dirname, 'algos10.js'));
     fusedOut = algos10.predictAll(draws.map(d => ({
       period: d.period, numbers: d.numbers, special: d.special,
     })));
-    log('10算法预测:', Object.entries(fusedOut.details).map(([k, v]) => k + '=' + v.zodiac).join(' '));
+    log('十模型预测:', Object.entries(fusedOut.details).map(([k, v]) => k + '=' + v.zodiac).join(' '));
+    log('动态权重  :', Object.entries(fusedOut.weights).map(([k, v]) => k + '=' + (+v).toFixed(3)).join(' '));
   } catch (e) {
-    log('⚠️ 10算法融合失败，回退页面单算法:', e.message);
+    log('⚠️ 十模型融合失败，回退页面单算法:', e.message);
   }
   const result = api.compositePredict(draws.map(d => ({
     period: d.period, numbers: d.numbers, special: d.special,
@@ -270,6 +278,19 @@ function nextPeriodOf(period) {
   fs.writeFileSync(PRED_PATH, JSON.stringify(predObj, null, 2) + '\n', 'utf8');
   log('新预测   :', nextPeriod, '| 融合生肖', predObj.zodiac, '| 6肖', (predObj.six || []).join('/'));
 
+  // 3.5) 把「下一期的事前预测」追加进 predictions.json 存档（该期开奖后按它判定，绝不重算）
+  if (fusedOut) {
+    predArchive[nextPeriod] = {
+      zodiac: fusedOut.fused.zodiac,
+      top3: fusedOut.fused.top3,
+      six: fusedOut.fused.six,
+      codes: fusedOut.fused.codes,
+      saved_at: today,
+    };
+    fs.writeFileSync(PRED_ARCHIVE_PATH, JSON.stringify(predArchive, null, 2) + '\n', 'utf8');
+    log('存档预测 :', nextPeriod, '已存入 predictions.json（共', Object.keys(predArchive).length, '期）');
+  }
+
   // 4) 重建 EMBEDDED_DATA / EMBEDDED_RECORDS 并写回 index.html
   const edLines = draws.map(d =>
     '["' + d.period + '","' + d.date + '","' +
@@ -278,10 +299,18 @@ function nextPeriodOf(period) {
   const edBlock = 'const EMBEDDED_DATA = [\n' + edLines.join(',\n') + '\n];';
   html = html.replace(/const EMBEDDED_DATA = \[[\s\S]*?\n\];/, edBlock);
 
-  const erLines = history.map(h =>
-    '  {"period":"' + h.period + '","actual_numbers":[' + h.actual_numbers.join(',') + '],' +
-    '"actual_special":' + h.actual_special + ',"code_hit":' + h.code_hit + ',"zodiac_hit":' + h.zodiac_hit + ',"six_hit":' + h.six_hit + '}'
-  );
+  const erLines = history.map(h => {
+    // 事前预测字段（v2：存档预测随战绩一起内嵌，前端直接读，不重算）
+    const predPart = h.pred_zodiac
+      ? ',"pred_zodiac":"' + h.pred_zodiac + '"' +
+        ',"pred_top3":' + (h.pred_top3 ? JSON.stringify(h.pred_top3) : 'null') +
+        ',"pred_six":' + (h.pred_six ? JSON.stringify(h.pred_six) : 'null') +
+        ',"pred_codes":' + (h.pred_codes ? JSON.stringify(h.pred_codes) : 'null')
+      : '';
+    return '  {"period":"' + h.period + '","actual_numbers":[' + h.actual_numbers.join(',') + '],' +
+      '"actual_special":' + h.actual_special + predPart +
+      ',"code_hit":' + h.code_hit + ',"zodiac_hit":' + h.zodiac_hit + ',"six_hit":' + h.six_hit + '}';
+  });
   const erBlock = 'const EMBEDDED_RECORDS = [\n' + erLines.join(',\n') + '\n];';
   html = html.replace(/const EMBEDDED_RECORDS = \[[\s\S]*?\n\];/, erBlock);
 
