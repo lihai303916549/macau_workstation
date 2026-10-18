@@ -1,8 +1,8 @@
 {
   "total": 2,
   "code_win": 0,
-  "zodiac_win": 2,
-  "six_win": 2,
+  "zodiac_win": 1,
+  "six_win": 0,
   "history": [
     {
       "period": "2026290",
@@ -15,9 +15,13 @@
         2
       ],
       "actual_special": 40,
-      "code_hit": 0,
+      "pred_zodiac": "虎",
+      "pred_top3": null,
+      "pred_six": null,
+      "pred_codes": null,
+      "code_hit": null,
       "zodiac_hit": 1,
-      "six_hit": 1
+      "six_hit": null
     },
     {
       "period": "2026291",
@@ -30,9 +34,13 @@
         2
       ],
       "actual_special": 17,
-      "code_hit": 0,
-      "zodiac_hit": 1,
-      "six_hit": 1
+      "pred_zodiac": "羊",
+      "pred_top3": null,
+      "pred_six": null,
+      "pred_codes": null,
+      "code_hit": null,
+      "zodiac_hit": 0,
+      "six_hit": null
     }
   ]
 }
