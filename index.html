@@ -1047,8 +1047,8 @@ function getNextPeriod(data) {
 }
 
 const EMBEDDED_RECORDS = [
-  {"period":"2026290","actual_numbers":[8,9,17,15,7,2],"actual_special":40,"code_hit":0,"zodiac_hit":1,"six_hit":1},
-  {"period":"2026291","actual_numbers":[32,10,41,38,22,2],"actual_special":17,"code_hit":0,"zodiac_hit":1,"six_hit":1}
+  {"period":"2026290","actual_numbers":[8,9,17,15,7,2],"actual_special":40,"pred_zodiac":"虎","pred_top3":null,"pred_six":null,"pred_codes":null,"code_hit":null,"zodiac_hit":1,"six_hit":null},
+  {"period":"2026291","actual_numbers":[32,10,41,38,22,2],"actual_special":17,"pred_zodiac":"羊","pred_top3":null,"pred_six":null,"pred_codes":null,"code_hit":null,"zodiac_hit":0,"six_hit":null}
 ];
 
 // 战绩有两份数据源（record.json 与 EMBEDDED_RECORDS），校验是否同步，避免只改一处
@@ -1183,41 +1183,12 @@ function copySix() {
   if (text) showToast('已复制6肖: ' + text);
 }
 
-function predZodiacFor(period) {
-  // 用截至该期之前的完整开奖历史，重算「当时」推荐生肖（7球频率众数，与线上 zodiacPredictSpecial/zEnsemble 一致）
-  const before = EMBEDDED_DATA
-    .filter(row => row[0] < period)
-    .map(row => {
-      const nums = String(row[2]).split(',').map(Number);
-      return { numbers: nums.slice(0, 6), special: nums[6] };
-    });
-  if (before.length < 30) return null;
-  return zodiacPredictSpecial(before);
-}
-
-function predCodesFor(period) {
-  // 用截至该期之前的完整开奖历史，重算「当时」23码（尾数热号法，与线上 tailHotPredict 一致）
-  const before = EMBEDDED_DATA
-    .filter(row => row[0] < period)
-    .map(row => {
-      const nums = String(row[2]).split(',').map(Number);
-      return { numbers: nums.slice(0, 6), special: nums[6] };
-    });
-  if (before.length < 30) return null;
-  return tailHotPredict(before);
-}
-
-function predSixFor(period) {
-  // 用截至该期之前的完整开奖历史，重算「当时」6肖（频率+遗漏加权，与线上 sixZodiacPredict 一致）
-  const before = EMBEDDED_DATA
-    .filter(row => row[0] < period)
-    .map(row => {
-      const nums = String(row[2]).split(',').map(Number);
-      return { numbers: nums.slice(0, 6), special: nums[6] };
-    });
-  if (before.length < 20) return null;
-  return sixZodiacPredict(before);
-}
+// ===== 战绩口径（v2，用户2026-10-19铁律：只做事前预测，事后按实记录）=====
+// 预测值从事前存档读（record.json / EMBEDDED_RECORDS 内嵌的 pred_* 字段），
+// ★严禁在此用当前历史重算过去★（291期"假虎✓"事故的根因就是旧代码事后重算）
+function predZodiacFor(r) { return r.pred_zodiac || null; }
+function predCodesFor(r) { return r.pred_codes || null; }
+function predSixFor(r) { return r.pred_six || null; }
 
 // ===== 每期隐藏按钮（localStorage 记忆，刷新/每晚数据更新后仍生效）=====
 var HIDE_KEY_REC = 'lz6_hidden_rec';
@@ -1269,15 +1240,17 @@ async function renderRecords() {
     const special = r.actual_special !== undefined ? r.actual_special : (r.actual_numbers || r.numbers || [])[6];
     const has = nums.length === 6 && special !== undefined;
     const lotteryNum = has ? nums.map(n => fmtZ(n)).join('+') + '=' + fmtZ(special) : '?';
-    // 23码命中：特码(特码)落在 23 码内
-    const predC = predCodesFor(r.period);
-    const codeHit = (has && predC) ? (predC.includes(special) ? 1 : 0) : null;
-    // 平特肖命中：开奖 7 个号（6正码+特码）任一生肖 == 推荐生肖（网页一直显示的口径）
-    const predZ = predZodiacFor(r.period);
-    const zodiacHit = (has && predZ) ? ([...nums, special].some(n => getNumberZodiac(n) === predZ) ? 1 : 0) : null;
-    // 6肖命中：特码(最后一球)生肖 ∈ 推荐6肖
-    const predS = predSixFor(r.period);
-    const sixHit = (has && predS) ? (predS.includes(getNumberZodiac(special)) ? 1 : 0) : null;
+    // 事前预测（从事前存档 pred_* 读，绝不事后重算——用户2026-10-19铁律）
+    const predC = predCodesFor(r);
+    // 平特肖：开奖 7 个号（6正码+特码）任一生肖 == 事前推荐生肖
+    const predZ = predZodiacFor(r);
+    // 6肖：特码(最后一球)生肖 ∈ 事前推荐6肖
+    const predS = predSixFor(r);
+    // 命中以记录里的判定值为准（update.js 事前判定写入）；无预测存档则显示 ?
+    const normHit = v => (v === 1 ? 1 : v === 0 ? 0 : null);
+    const codeHit = has ? normHit(r.code_hit) : null;
+    const zodiacHit = has ? normHit(r.zodiac_hit) : null;
+    const sixHit = has ? normHit(r.six_hit) : null;
     const codeIcon = codeHit === 1 ? '✓' : codeHit === 0 ? '✗' : '?';
     const zodiacIcon = zodiacHit === 1 ? '✓' : zodiacHit === 0 ? '✗' : '?';
     const sixIcon = sixHit === 1 ? '✓' : sixHit === 0 ? '✗' : '?';
