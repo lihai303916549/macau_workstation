@@ -201,7 +201,7 @@ function nextPeriodOf(period) {
 
   // 1) 按实判定：对已开奖未记录的期，从事前预测存档（predictions.json）取「当时」的预测判定
   //    ★用户铁律（2026-10-19）：只做事前预测，事后按实记录，严禁用现在历史重算过去★
-  const FIRST_PERIOD = '2026290';
+  const FIRST_PERIOD = '2026292';   // 2026-10-19 用户要求：从292期重新开始（290/291战绩已清空）
   let predArchive = {};
   try { predArchive = JSON.parse(fs.readFileSync(PRED_ARCHIVE_PATH, 'utf8')); } catch (e) {}
   const missing = draws
