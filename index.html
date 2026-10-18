@@ -194,8 +194,8 @@ h1 {
       <div class="card-title">💰 平肖投注计划表（每晚自动对奖更新）</div>
       <div class="stats-row" id="bet-kpi" style="margin-bottom:12px;">加载中...</div>
       <div style="max-height:420px; overflow:auto; border:1px solid var(--border); border-radius:6px;">
-        <table class="backtest-table bet-table" style="min-width:780px;">
-          <thead><tr><th>期数</th><th>生肖</th><th>赔率</th><th>押肖数</th><th>赢亏</th><th>单价</th><th>投注额</th><th>盈亏</th><th>累计本金</th><th>下注</th></tr></thead>
+        <table class="backtest-table bet-table" style="min-width:700px;">
+          <thead><tr><th>期数</th><th>生肖</th><th>赔率</th><th>押肖数</th><th>赢亏</th><th>单价投注额</th><th>盈亏</th><th>累计本金</th><th>下注</th></tr></thead>
           <tbody id="bet-body"></tbody>
         </table>
       </div>
@@ -1290,7 +1290,7 @@ async function loadBetTable() {
       '<td>' + (x.odds === null || x.odds === undefined ? '—' : Number(x.odds).toFixed(1)) + '</td>' +
       '<td>' + (x.count === null || x.count === undefined ? '—' : x.count) + '</td>' +
       '<td style="color:' + rc + '; font-weight:600;">' + x.result + '</td>' +
-      '<td>' + fmtBetNum(x.unit) + '</td><td>' + fmtBetNum(x.stake) + '</td>' +
+      '<td>' + fmtBetNum(x.stake) + '</td>' +
       '<td style="color:' + pc + '">' + (typeof x.pnl === 'number' ? (x.pnl >= 0 ? '+' : '') + x.pnl.toLocaleString('zh-CN') : x.pnl) + '</td>' +
       '<td style="font-weight:600;">' + fmtBetNum(x.capital) + '</td>' +
       '<td>' + (x.bet || '—') + '</td></tr>';
