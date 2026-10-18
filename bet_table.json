@@ -1,0 +1,37 @@
+{
+ "generated_at": "2026-10-18 18:53:40+08:00",
+ "capital_start": 1000,
+ "risk": 7,
+ "kpi": {
+  "trades": 1,
+  "win_rate": 1.0,
+  "total_pnl": 143,
+  "current": 1143
+ },
+ "rows": [
+  {
+   "period": 2026290,
+   "zodiac": "虎",
+   "odds": 1,
+   "count": 1,
+   "result": "赢",
+   "unit": 143,
+   "stake": 143,
+   "pnl": 143,
+   "capital": 1143,
+   "bet": "虎,"
+  },
+  {
+   "period": 2026291,
+   "zodiac": "",
+   "odds": 1,
+   "count": 1,
+   "result": "开奖中",
+   "unit": 163,
+   "stake": 163,
+   "pnl": "?",
+   "capital": 1143,
+   "bet": "羊,"
+  }
+ ]
+}
