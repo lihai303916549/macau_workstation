@@ -1047,8 +1047,7 @@ function getNextPeriod(data) {
 }
 
 const EMBEDDED_RECORDS = [
-  {"period":"2026290","actual_numbers":[8,9,17,15,7,2],"actual_special":40,"pred_zodiac":"虎","pred_top3":null,"pred_six":null,"pred_codes":null,"code_hit":null,"zodiac_hit":1,"six_hit":null},
-  {"period":"2026291","actual_numbers":[32,10,41,38,22,2],"actual_special":17,"pred_zodiac":"羊","pred_top3":null,"pred_six":null,"pred_codes":null,"code_hit":null,"zodiac_hit":0,"six_hit":null}
+
 ];
 
 // 战绩有两份数据源（record.json 与 EMBEDDED_RECORDS），校验是否同步，避免只改一处
@@ -1270,7 +1269,11 @@ async function renderRecords() {
 
   setHtml('record-body', rows.join(''));
   applyHiddenRows(HIDE_KEY_REC, document.getElementById('record-body'));
-  setText('record-summary', '累计' + counted + '期：23码 ' + codeWin + '/' + counted + '（' + (counted > 0 ? (codeWin/counted*100).toFixed(1) : '0') + '%），平特肖 ' + zodiacWin + '/' + counted + '（' + (counted > 0 ? (zodiacWin/counted*100).toFixed(1) : '0') + '%），6肖 ' + sixWin + '/' + counted + '（' + (counted > 0 ? (sixWin/counted*100).toFixed(1) : '0') + '%）');
+  if (rows.length === 0) {
+    setText('record-summary', '暂无战绩（2026-10-19 起从292期重新记录：每晚事前预测→开奖后按实判定）');
+  } else {
+    setText('record-summary', '累计' + counted + '期：23码 ' + codeWin + '/' + counted + '（' + (counted > 0 ? (codeWin/counted*100).toFixed(1) : '0') + '%），平特肖 ' + zodiacWin + '/' + counted + '（' + (counted > 0 ? (zodiacWin/counted*100).toFixed(1) : '0') + '%），6肖 ' + sixWin + '/' + counted + '（' + (counted > 0 ? (sixWin/counted*100).toFixed(1) : '0') + '%）');
+  }
 }
 
 // ===== 平肖投注计划表（桌面 Excel 每晚由 export_table.py 导出 bet_table.json）=====
