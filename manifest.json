@@ -1,0 +1,14 @@
+{
+  "name": "六子 - 澳门Mark Six 预测工作台",
+  "short_name": "六子",
+  "description": "多算法融合预测 · 动态实时更新 · 数据驱动决策",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1117",
+  "theme_color": "#58a6ff",
+  "icons": [
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
