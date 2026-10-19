@@ -291,6 +291,15 @@ function nextPeriodOf(period) {
     log('存档预测 :', nextPeriod, '已存入 predictions.json（共', Object.keys(predArchive).length, '期）');
   }
 
+  // 3.6) 云端生成 bet_table.json（v5.3 全云端化：数据源=predictions存档+record判定，不依赖桌面Excel）
+  try {
+    const { gen } = require(path.join(__dirname, 'gen_bet_table.js'));
+    const bt = gen();
+    log('投注表   : bet_table.json 云端生成', bt.rows.length, '行 | 现在本金', bt.kpi.current);
+  } catch (e) {
+    log('⚠️ bet_table 云端生成失败（不影响其他数据）:', e.message);
+  }
+
   // 4) 重建 EMBEDDED_DATA / EMBEDDED_RECORDS 并写回 index.html
   const edLines = draws.map(d =>
     '["' + d.period + '","' + d.date + '","' +
