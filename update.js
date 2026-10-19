@@ -204,6 +204,23 @@ function nextPeriodOf(period) {
   const FIRST_PERIOD = '2026292';   // 2026-10-19 用户要求：从292期重新开始（290/291战绩已清空）
   let predArchive = {};
   try { predArchive = JSON.parse(fs.readFileSync(PRED_ARCHIVE_PATH, 'utf8')); } catch (e) {}
+
+  // 0) 幂等守卫（v5.4 用户要求「21:35起每5分钟、跑到成功为止」的等效实现）：
+  //    今晚工作已完成 = 最新开奖期已判定 + 下一期预测已存档 → 秒退不重复劳动。
+  //    后续每5分钟的 cron 触发都空转（几秒退出，无提交无副作用）。
+  //    workflow_dispatch 手动触发跳过守卫（GITHUB_EVENT_NAME=workflow_dispatch），永远强制执行。
+  const isDispatch = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch';
+  const latestP = latest.period;
+  const nextP = nextPeriodOf(latestP);
+  const recDone = history.some(h => h.period === latestP);
+  const archDone = !!(predArchive[nextP] && predArchive[nextP].zodiac);
+  if (!isDispatch && recDone && archDone) {
+    log('✅ 今晚工作已完成（' + latestP + ' 已判定 + ' + nextP + ' 预测已存档），跳过本次运行');
+    log('\n===== 完成（幂等秒退）=====');
+    process.exit(0);
+  }
+  log('今晚待办: ' + latestP + (recDone ? ' 已判定' : ' 待判定') + ' / ' + nextP + (archDone ? ' 预测已存档' : ' 待预测存档'));
+
   const missing = draws
     .filter(d => !history.some(h => h.period === d.period))
     .filter(d => lastRec ? (d.period > lastRec.period) : (d.period >= FIRST_PERIOD))
