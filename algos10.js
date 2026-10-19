@@ -382,6 +382,9 @@ function cnnFwd(m, hist){
 
 // ================= D2·Walk-forward 回测优化权重 =================
 // 慢模型（rnn/lstm/transformer/cnn）预训练到回测起点，回测期只前向不重训（成本控制）
+// ⚠️ 跨年数据口径（v5.2 用户要求全量学习）：早年数据（2023-2025）只进【训练】（DL输入输出
+//    是49维号码，跨年可比）；【回测】只用2026年部分——生肖映射每年春节切换，早年数据
+//    生肖判定会错，不进回测。
 const WF_BASELINE = 0.4786;
 const MODEL_KEYS = ['rnn','lstm','transformer','lcg','cnn'];
 const DL_KEYS = ['rnn','lstm','transformer','cnn'];
@@ -389,24 +392,30 @@ const DL_TRAIN = { rnn: rnnTrain, lstm: lstmTrain, transformer: trTrain, cnn: cn
 const DL_FWD   = { rnn: rnnFwd,   lstm: lstmFwd,   transformer: trFwd,   cnn: cnnFwd };
 
 function walkForwardWeights(hist, w=60){
-  const start=Math.max(80, hist.length-w); // 至少留80期给深度学习训练
+  // 回测期：2026 年部分近 w 期（生肖映射 STD_2026 正确的区间）
+  const hist26 = hist.filter(d => d.period >= '2026001');
+  const bt = hist26.slice(-w);
   const hits={}; MODEL_KEYS.forEach(n=>hits[n]=[0,0]);
-  // 慢模型：用 start 之前的历史预训练一次
-  const models={};
-  for(const n of DL_KEYS){
-    const sub=hist.slice(0,start);
-    if(sub.length>=60) models[n]=DL_TRAIN[n](sub);
-  }
-  for(let i=start;i<hist.length;i++){
-    const h=hist.slice(0,i);
-    const seven=balls(hist[i]);
-    for(const n of MODEL_KEYS){
-      const sc = DL_KEYS.includes(n)
-        ? (models[n] ? DL_FWD[n](models[n], h) : new Array(49).fill(0.5))
-        : algoLCG();
-      const tz=top1Z(sc);
-      const hit=seven.some(x=>zOf(x)===tz)?1:0;
-      hits[n][1]++; hits[n][0]+=hit;
+  if (bt.length >= 10) {
+    // 慢模型：用「首个回测期之前」的全量历史（含2023-2025）预训练一次
+    const cutoff = bt[0].period;
+    const models={};
+    for(const n of DL_KEYS){
+      const sub=hist.filter(d => d.period < cutoff);
+      if(sub.length>=60) models[n]=DL_TRAIN[n](sub);
+    }
+    const histIdx=new Map(hist.map((d,i)=>[d.period,i]));
+    for(const d of bt){
+      const h=hist.slice(0, histIdx.get(d.period));
+      const seven=balls(d);
+      for(const n of MODEL_KEYS){
+        const sc = DL_KEYS.includes(n)
+          ? (models[n] ? DL_FWD[n](models[n], h) : new Array(49).fill(0.5))
+          : algoLCG();
+        const tz=top1Z(sc);
+        const hit=seven.some(x=>zOf(x)===tz)?1:0;
+        hits[n][1]++; hits[n][0]+=hit;
+      }
     }
   }
   const W={}; let anyPos=false;
