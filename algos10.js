@@ -15,9 +15,10 @@
  *
  * ⚠️ 深度学习训练成本控制（关键工程决策）：
  *   慢模型（rnn/lstm/transformer/cnn）在 Walk-forward 回测中不每期重训——
- *   预训练到「回测起点之前的历史」，回测60期只前向；预测当天用全历史重训一次。
+ *   预训练到「回测起点之前的历史」，回测60期只前向；预测当天用全量历史重训一次。
  *   否则 60期×全训练 = 几十分钟，每晚自动化等不起。
- *   训练只用近 TRAIN_WINDOW=200 期；epoch/隐层/窗口全部小号化；梯度裁剪clip=5。
+ *   训练范围（v5.1 用户要求"最早一期到最新一期全部学习"）：全量历史，不再截断；
+ *   epoch/隐层/窗口全部小号化；梯度裁剪clip=5。
  *
  * 聚合除号数（用户决策「消除」）：49维→生肖汇总时除以该生肖号码数（马÷5、其余÷4），
  *   12生肖按平均分公平竞争，消除「马5个号总和自动胜出」的偏置。
@@ -76,7 +77,7 @@ function algoLCG(){
 // h_t = tanh(Wxh·x_t + Whh·h_{t-1} + bh)；o = sigmoid(Who·h_t + bo)
 const RNN_H = 16, RNN_WIN = 20, RNN_EPOCHS = 5;
 function rnnTrain(hist){
-  const data = hist.slice(-200);
+  const data = hist; // v5.1：全量历史学习（最早一期到最新一期，用户2026-10-20要求）
   const Wxh = Array.from({length:RNN_H},()=>Array.from({length:49},()=>randn()*0.1));
   const Whh = Array.from({length:RNN_H},()=>Array.from({length:RNN_H},()=>randn()*0.1));
   const bh  = new Array(RNN_H).fill(0);
@@ -149,7 +150,7 @@ function rnnFwd(m, hist){
 // ================= 2) LSTM 长短期记忆 =================
 const LSTM_H = 16, LSTM_WIN = 20, LSTM_EPOCHS = 5;
 function lstmTrain(hist){
-  const data = hist.slice(-200);
+  const data = hist; // v5.1：全量历史学习
   const p = (r,c)=>Array.from({length:r},()=>Array.from({length:c},()=>randn()*0.1));
   const Wxi=p(LSTM_H,49), Whi=p(LSTM_H,LSTM_H), Wxf=p(LSTM_H,49), Whf=p(LSTM_H,LSTM_H);
   const Wxo=p(LSTM_H,49), Who_=p(LSTM_H,LSTM_H), Wxg=p(LSTM_H,49), Whg=p(LSTM_H,LSTM_H);
@@ -238,7 +239,7 @@ function lstmFwd(m, hist){
 // 每期49维 → Emb(d=16)；window=12 单头自注意力 + FFN32；正弦位置编码；输出投影49
 const TR_D = 16, TR_WIN = 12, TR_EPOCHS = 3;
 function trTrain(hist){
-  const data=hist.slice(-200).map(feats49);
+  const data=hist.map(feats49); // v5.1：全量历史学习
   const Emb=Array.from({length:49},()=>Array.from({length:TR_D},()=>randn()*0.2));
   const Wq=Array.from({length:TR_D},()=>Array.from({length:TR_D},()=>randn()*0.2));
   const Wk=Array.from({length:TR_D},()=>Array.from({length:TR_D},()=>randn()*0.2));
@@ -318,7 +319,7 @@ function trFwd(m, hist){
 // 输入 T=20 期 × 49 维时序图；2个 kernel=3 一维卷积 → 拼接(18×2) → FC49
 const CNN_T = 20, CNN_K = 3, CNN_C = 2, CNN_EPOCHS = 5;
 function cnnTrain(hist){
-  const data=hist.slice(-200).map(feats49);
+  const data=hist.map(feats49); // v5.1：全量历史学习
   const conv=Array.from({length:CNN_C},()=>Array.from({length:CNN_K},()=>Array.from({length:49},()=>randn()*0.1)));
   const bconv=new Array(CNN_C).fill(0);
   const flatN=(CNN_T-CNN_K+1)*CNN_C; // 18*2=36
@@ -447,9 +448,9 @@ function top1Z(sc){
 // ================= D1·Ensemble 主入口（混合架构） =================
 function predictAll(hist){
   rngReset(20261020); // v5 种子
-  // 1) 4个深度学习模型用全历史训练 + LCG 确定性
+  // 1) 4个深度学习模型用全量历史训练（最早一期到最新一期，用户2026-10-20要求）+ LCG 确定性
   const models={};
-  for(const n of DL_KEYS) models[n]=DL_TRAIN[n](hist.slice(-200));
+  for(const n of DL_KEYS) models[n]=DL_TRAIN[n](hist);
   // 2) D2 Walk-forward 近60期影子回测 → 当天各模型话语权
   const W=walkForwardWeights(hist, 60);
   // 3) D1 Ensemble：归一化后按动态权重加权融合
