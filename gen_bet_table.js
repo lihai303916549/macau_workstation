@@ -18,7 +18,7 @@ const PRED_ARCHIVE = path.join(DEPLOY, 'predictions.json');
 const RECORD = path.join(DEPLOY, 'record.json');
 const OUT = path.join(DEPLOY, 'bet_table.json');
 
-const FIRST_PERIOD = '2026292';
+const FIRST_PERIOD = '2026293'; // 2026-10-20 03:18 用户再次清空，从293期重新开始
 const CAPITAL_START = 1000;
 const RISK = 7;
 
