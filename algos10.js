@@ -1,20 +1,17 @@
 'use strict';
 /**
- * 六子 —— 十模型预测引擎 v3（2026-10-20 用户定版，替换 v2 十模型）
+ * 六子 —— 预测引擎 v4（2026-10-20 用户定版，v3 基础上删除 HMM/谱分析/自相关）
  * ==================== 模型清单（用户指定，旧模型已全部删除）====================
- * A类·号码级打分模型（8个，各输出49维原始分，分高=更可能出）：
+ * A类·号码级打分模型（5个，各输出49维原始分，分高=更可能出）：
  *   【随机派 4 个】——RNG 不依赖历史，纯产随机分；在 Ensemble 中充当「内部基准尺」：
  *     1) 线性同余 LCG        —— x=(a·x+c) mod 2^32（Math.imul 保精度），49维均匀分
  *     2) LFSR                —— 16位斐波那契LFSR（taps 16/14/13/11），位流映射49维
  *     3) 梅森旋转 MT19937    —— 标准624状态梅森旋转，49维均匀分
  *     4) 截断输出 PRNG       —— MT 输出仅取高11位（tempering 后截断），49维分
- *   【统计派 4 个】——从历史找规律：
+ *   【统计派 1 个】：
  *     5) AR/ARIMA            —— 特码序列 AR(2)（水平+一阶差分融合）→ 高斯核打分
- *     6) 马尔可夫/HMM        —— 一阶转移计数 + 两状态隐马尔可夫（热/冷桶）前向期望
- *     7) 谱分析              —— 特码序列 DFT 功率谱 top 周期 → 周期外推（t-T期7球加权）
- *     8) 自相关检验          —— 各滞后自相关，|r|>1.96/√n 的 lag 用 t-lag 期加减分
- * D类·框架层（4个，v2 保留不变）：
- *   1) Ensemble 动态融合    —— 8模型归一化后按动态权重加权融合
+ * D类·框架层（4个，保留不变）：
+ *   1) Ensemble 动态融合    —— 5模型归一化后按动态权重加权融合
  *   2) Walk-forward 优化    —— 每天预测前对近60期影子回测，命中超额=当天话语权
  *   4) 多属性命中判定       —— judgeDraw：23码/平特肖/6肖三层判定（导出供 update.js 用）
  *
@@ -119,7 +116,7 @@ function algoTruncPRNG(){
   return sc;
 }
 
-// ================= 统计派 4 个 =================
+// ================= 统计派 1 个 =================
 
 // AR(p) 最小二乘拟合（高斯消元 3x3，含截距）
 function fitAR(y){
@@ -155,107 +152,12 @@ function algoARIMA(hist, W=150, sigma=7){
   return sc;
 }
 
-// 6) 马尔可夫链 / 隐马尔可夫模型 HMM
-//    马尔可夫：一阶转移 M[a][b]=上期出a下期出b共现次数；以最后一期为当前状态
-//    HMM（两状态简化）：隐状态=当期7球中"近10期热号"占比高/低；状态间转移矩阵 P；
-//         每状态内49维发射频率 E；下一期期望发射 = P[s]·E 加权
-function algoMarkovHMM(hist, W=150){
-  const win = hist.slice(-W);
-  // --- 马尔可夫一阶转移 ---
-  const M = new Array(49).fill(0).map(()=>new Array(49).fill(0));
-  for (let t=0;t<win.length-1;t++){
-    const cur = balls(win[t]);
-    const nxt = new Set(balls(win[t+1]));
-    for (const a of cur) for (let b=1;b<=49;b++) if (nxt.has(b)) M[a-1][b-1]++;
-  }
-  const scM = new Array(49).fill(0);
-  for (const a of balls(win[win.length-1])){
-    const row = M[a-1], tot = row.reduce((x,y)=>x+y,0) || 1;
-    for (let b=0;b<49;b++) scM[b] += row[b]/tot;
-  }
-  // --- HMM 两状态（热/冷） ---
-  const hot = new Set(); // 近10期出现≥2次的号
-  const w10 = win.slice(-10);
-  const c10 = new Array(49).fill(0);
-  for (const d of w10) for (const n of balls(d)) c10[n-1]++;
-  for (let n=0;n<49;n++) if (c10[n]>=2) hot.add(n+1);
-  const states = win.map(d => { const b7 = balls(d); return b7.filter(n=>hot.has(n)).length >= 4 ? 0 : 1; });
-  const P = [[0.5,0.5],[0.5,0.5]];   // 状态转移
-  const Pc = [[1,1],[1,1]];          // 计数
-  for (let t=0;t<states.length-1;t++){ Pc[states[t]][states[t+1]]++; }
-  for (let s=0;s<2;s++){ const tot=Pc[s][0]+Pc[s][1]; P[s][0]=Pc[s][0]/tot; P[s][1]=Pc[s][1]/tot; }
-  const E = [[0,0],[0,0]]; const Ec = [new Array(49).fill(0), new Array(49).fill(0)];
-  for (let t=0;t<win.length;t++) for (const n of balls(win[t])) Ec[states[t]][n-1]++;
-  const scH = new Array(49).fill(0);
-  const sNow = states[states.length-1];
-  for (let s2=0;s2<2;s2++){
-    const tot = Ec[s2].reduce((x,y)=>x+y,0) || 1;
-    for (let n=0;n<49;n++) scH[n] += P[sNow][s2] * Ec[s2][n]/tot;
-  }
-  const sc = new Array(49);
-  for (let n=0;n<49;n++) sc[n] = 0.5*scM[n] + 0.5*scH[n];
-  return sc;
-}
-
-// 7) 谱分析：特码序列 DFT 功率谱 → top5 周期 → 周期外推
-//    若序列存在周期 T，则下期 ≈ T 期前那一期；按周期功率加权 t-T 期 7 球
-function algoSpectral(hist, maxK=64, topK=5){
-  const y = hist.map(d => d.special);
-  const N = y.length;
-  const mean = y.reduce((a,b)=>a+b,0)/N;
-  const yc = y.map(v => v-mean);
-  const powers = [];
-  for (let k=1;k<=maxK;k++){
-    let re=0, im=0;
-    for (let t=0;t<N;t++){
-      const ph = -2*Math.PI*k*t/N;
-      re += yc[t]*Math.cos(ph); im += yc[t]*Math.sin(ph);
-    }
-    powers.push({ k, p: re*re+im*im });
-  }
-  powers.sort((a,b)=>b.p-a.p);
-  const top = powers.slice(0, topK);
-  const sc = new Array(49).fill(0);
-  for (const { k, p } of top){
-    const T = Math.max(1, Math.round(N/k));   // 周期长度（期）
-    const idx = N - 1 - T;                      // t-T 期
-    if (idx < 0) continue;
-    for (const n of balls(hist[idx])) sc[n-1] += p;
-  }
-  return sc;
-}
-
-// 8) 自相关检验：特码序列各滞后自相关，|r|>1.96/√N 视为显著
-//    显著且正相关：t-lag 期出过的号加分；显著且负相关：减分（避免出）
-function algoACF(hist, maxLag=40){
-  const y = hist.map(d => d.special);
-  const N = y.length;
-  const mean = y.reduce((a,b)=>a+b,0)/N;
-  const yc = y.map(v => v-mean);
-  const denom = yc.reduce((a,b)=>a+b*b,0) || 1;
-  const thresh = 1.96/Math.sqrt(N);
-  const sc = new Array(49).fill(0);
-  for (let lag=1; lag<=maxLag && lag<N; lag++){
-    let s=0;
-    for (let t=lag;t<N;t++) s += yc[t]*yc[t-lag];
-    const r = s/denom;
-    if (Math.abs(r) > thresh){
-      const idx = N-1-lag;
-      if (idx < 0) continue;
-      const sgn = r>0 ? 1 : -1;
-      for (const n of balls(hist[idx])) sc[n-1] += sgn*Math.abs(r);
-    }
-  }
-  // 负相关会把分压成负数，归一到 [0,∞) 由 normalize 处理
-  return sc;
-}
-
 // ================= D2·Walk-forward 回测优化权重 =================
 const WF_BASELINE = 0.4786; // 平特肖7球口径经验基线
-const MODEL_KEYS = ['lcg','lfsr','mt','truncprng','arima','markov_hmm','spectral','acf'];
+const MODEL_KEYS = ['lcg','lfsr','mt','truncprng','arima'];
 const MODEL_FNS = {
   lcg: algoLCG, lfsr: algoLFSR, mt: algoMT, truncprng: algoTruncPRNG,
-  arima: algoARIMA, markov_hmm: algoMarkovHMM, spectral: algoSpectral, acf: algoACF,
+  arima: algoARIMA,
 };
 
 function walkForwardWeights(hist, w=60){
@@ -309,7 +211,7 @@ function top1Z(sc){
 // ================= D1·Ensemble 主入口 =================
 function predictAll(hist){
   rngReset(20261020); // v3 种子
-  // 1) 8个A类模型各算49维原始分
+  // 1) 5个A类模型各算49维原始分
   const raw={};
   for(const k of MODEL_KEYS) raw[k]=MODEL_FNS[k](hist);
   // 2) D2 Walk-forward 近60期影子回测 → 当天各模型话语权
