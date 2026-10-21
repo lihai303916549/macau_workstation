@@ -285,6 +285,7 @@ function nextPeriodOf(period) {
     details: fusedOut.details,
     weights: fusedOut.weights,
     consensus: fusedOut.consensus || null,   // v6：共识投票（前端展示一致度/投票明细）
+    zodiacScores: fusedOut.zodiacScores || null,   // v8.1：融合后12生肖分数全景（网页展示）
     generated_at: today,
     next_period: nextPeriod,
     data_until: latest.period,
