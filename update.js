@@ -284,6 +284,7 @@ function nextPeriodOf(period) {
     fused: fusedOut.fused,
     details: fusedOut.details,
     weights: fusedOut.weights,
+    consensus: fusedOut.consensus || null,   // v6：共识投票（前端展示一致度/投票明细）
     generated_at: today,
     next_period: nextPeriod,
     data_until: latest.period,
@@ -302,6 +303,8 @@ function nextPeriodOf(period) {
       top3: fusedOut.fused.top3,
       six: fusedOut.fused.six,
       codes: fusedOut.fused.codes,
+      consensus: fusedOut.consensus || null,     // v6：共识投票存档
+      skipped: !!(fusedOut.consensus && fusedOut.consensus.action === 'skip'), // 共识不足→本期不下注
       saved_at: today,
     };
     fs.writeFileSync(PRED_ARCHIVE_PATH, JSON.stringify(predArchive, null, 2) + '\n', 'utf8');
