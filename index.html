@@ -1883,7 +1883,8 @@ function renderAlgoNote(pred, targetId) {
             (isSkip ? '<b style="color:var(--red)">分歧过大 → 本期不押注（保护本金）</b>' : '分歧可控 → 正常下注') + '</div>';
     const vt = Object.entries(cons.votes || {}).sort((a,b)=>b[1]-a[1])
       .map(([z,c]) => z + '×' + c).join(' · ');
-    html += '<div class="algo-note-sub2">投票明细：' + vt + '</div>';
+    html += '<div class="algo-note-sub2">投票明细：' + vt +
+            '　（投票=各模型【独立】意见的分散度检验；实际押注以【加权融合主推】为准，融合已按各模型回测表现加权）</div>';
   }
   html += '</div>';
   el.innerHTML = html;
