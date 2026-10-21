@@ -61,9 +61,13 @@ function balls(d){ return [...d.numbers, d.special]; }
 // 每期49维0/1特征（7球位置=1）
 function feats49(d){ const x=new Float64Array(49); for(const n of balls(d)) x[n-1]=1; return x; }
 
-// ================= 4) LCG（随机派基准尺，确定性） =================
-function algoLCG(){
-  let x = 20261020 >>> 0;
+// ================= 4) LCG（随机派基准尺） =================
+// ⚠️ v5.5 修复：原实现种子恒定(20261020) → 每次调用输出完全相同的49维分数，
+//    导致「每期预测都推同一个生肖」（实测连推10期全是鸡），且它占47.8%权重时
+//    会把整个 Ensemble 结果焊死。现在种子按期号派生 → 每期输出不同的伪随机数，
+//    回归为真正的随机基准尺，权重由 Walk-forward 按真实命中率自动摊薄。
+function algoLCG(seed){
+  let x = (seed >>> 0) || 20261020;
   const a = 1664525, c = 1013904223;
   const sc = new Array(49);
   for (let n = 0; n < 49; n++) {
@@ -71,6 +75,11 @@ function algoLCG(){
     sc[n] = x / 4294967296;
   }
   return sc;
+}
+// 由期号派生每期种子（同一期永远一致→可复现；不同期不同→真随机基准）
+function lcgSeedOf(period){
+  const seq = parseInt(String(period).slice(4), 10) || 0;
+  return (20261020 + seq * 2654435761) >>> 0;
 }
 
 // ================= 1) RNN 循环神经网络 =================
@@ -411,7 +420,7 @@ function walkForwardWeights(hist, w=60){
       for(const n of MODEL_KEYS){
         const sc = DL_KEYS.includes(n)
           ? (models[n] ? DL_FWD[n](models[n], h) : new Array(49).fill(0.5))
-          : algoLCG();
+          : algoLCG(lcgSeedOf(d.period));   // 随机派按期号换种子（v5.5）
         const tz=top1Z(sc);
         const hit=seven.some(x=>zOf(x)===tz)?1:0;
         hits[n][1]++; hits[n][0]+=hit;
@@ -465,7 +474,7 @@ function predictAll(hist){
   // 3) D1 Ensemble：归一化后按动态权重加权融合
   const raw={};
   for(const n of DL_KEYS) raw[n]=DL_FWD[n](models[n], hist);
-  raw.lcg=algoLCG();
+  raw.lcg=algoLCG(lcgSeedOf(hist[hist.length-1].period));   // 随机派按期号换种子（v5.5）
   const fused=new Float64Array(49);
   let wsum=0;
   for(const k of MODEL_KEYS){
