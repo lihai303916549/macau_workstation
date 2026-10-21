@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21 13:23:08+08:00",
+  "generated_at": "2026-10-21 13:34:46+08:00",
   "capital_start": 1000,
   "risk": 7,
   "kpi": {
@@ -28,14 +28,14 @@
       "zodiac": "",
       "odds": 1,
       "count": 1,
-      "result": "未下注(共识不足)",
-      "unit": 0,
-      "stake": 0,
-      "pnl": 0,
+      "result": "开奖中",
+      "unit": 163,
+      "stake": 163,
+      "pnl": "?",
       "capital": 1143,
-      "bet": "",
-      "agree": 0.4666666666666667,
-      "skipped": true
+      "bet": "虎,",
+      "agree": 0.6666666666666666,
+      "skipped": false
     }
   ]
 }
