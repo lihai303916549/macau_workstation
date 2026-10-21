@@ -129,6 +129,12 @@ h1 {
 .hide-btn { padding: 2px 8px; font-size: 11px; border: 1px solid var(--border); background: var(--card); color: var(--text-muted); border-radius: 4px; cursor: pointer; white-space: nowrap; }
 .hide-btn:hover { color: var(--red); border-color: var(--red); }
 .restore-btn { margin-left: 10px; padding: 2px 10px; font-size: 11px; border: 1px solid var(--accent); background: transparent; color: var(--accent); border-radius: 4px; cursor: pointer; }
+.algo-note { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border); font-size: 10.5px; color: var(--text-muted); line-height: 1.75; }
+.algo-note-title { color: var(--text); font-size: 11px; margin-bottom: 5px; }
+.algo-chip { display: inline-block; margin: 2px 4px 2px 0; padding: 1px 7px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg); }
+.algo-chip-zero { opacity: .4; text-decoration: line-through; }
+.algo-note-sub { margin-top: 5px; }
+.algo-note-sub2 { margin-top: 4px; opacity: .65; font-size: 10px; }
 
 .full-width { grid-column: 1 / -1; }
 
@@ -170,6 +176,7 @@ h1 {
         <button type="button" class="copy-btn" id="copy-codes-btn" onclick="copyCodes()">📋 复制</button>
       </div>
       <div id="composite-codes" style="display:flex; flex-wrap:wrap; gap:6px;" data-page-node-id="UomOekvylyD31E0sh1z5Ry"></div>
+      <div id="composite-algo"></div>
     </div>
     <div class="card" data-page-node-id="zodiacCard">
       <div class="card-head">
@@ -179,6 +186,7 @@ h1 {
       <div style="display:flex; align-items:center; gap:12px;" data-page-node-id="zodiacRow">
         <p style="font-size:14px; line-height:1.8; flex:1;" id="zodiac-result" data-page-node-id="yLeLAO7pfYF42xivbkIPH9"></p>
       </div>
+      <div id="zodiac-algo"></div>
     </div>
     <div class="card" data-page-node-id="sixCard">
       <div class="card-head">
@@ -186,6 +194,7 @@ h1 {
         <button type="button" class="copy-btn" id="copy-six-btn" onclick="copySix()">📋 复制</button>
       </div>
       <div id="six-result" style="font-size:14px; line-height:1.9;"></div>
+      <div id="six-algo"></div>
     </div>
     <div class="card full-width" data-page-node-id="3O4EfVQSHv6SCOYPpmYH5A">
       <div class="card-title" data-page-node-id="jCFLbwP3flvCk47RDmxsIk">📊 记录战绩（从2026253期开始）</div>
@@ -1821,12 +1830,50 @@ function setHtml(id, html) {
   if (el) el.innerHTML = html;
 }
 
+const ALGO_LABEL = { rnn: 'RNN', lstm: 'LSTM', transformer: 'Transformer', lcg: 'LCG', cnn: 'CNN' };
+const ALGO_DESC = {
+  rnn: '循环神经网络',
+  lstm: '长短期记忆网络',
+  transformer: 'Transformer 注意力',
+  lcg: '线性同余生成器（随机基准尺）',
+  cnn: '卷积神经网络',
+};
+
+// 在 23码 / 平特肖 / 6肖 三个卡片下方标注：本指标由哪些算法算出、各自权重多少
+function renderAlgoNote(pred, targetId) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  if (!pred || !pred.weights) { el.innerHTML = ''; return; }
+  const keys = Object.keys(pred.weights);
+  const sum = keys.reduce((a, k) => a + (pred.weights[k] || 0), 0) || 1;
+  let html = '<div class="algo-note">';
+  html += '<div class="algo-note-title">🧠 Ensemble 动态融合 · ' + keys.length + ' 模型 · Walk-forward 近60期回测定权重</div>';
+  html += '<div>' + keys.map(k => {
+    const w = pred.weights[k] || 0;
+    const pct = w / sum * 100;
+    const zero = w <= 0 ? ' algo-chip-zero' : '';
+    return '<span class="algo-chip' + zero + '" title="' + (ALGO_DESC[k] || k) + '">' + (ALGO_LABEL[k] || k) + ' ' + pct.toFixed(1) + '%</span>';
+  }).join('') + '</div>';
+  if (pred.details) {
+    html += '<div class="algo-note-sub">各模型独立主推：' + keys.map(k =>
+      (ALGO_LABEL[k] || k) + '→' + ((pred.details[k] && pred.details[k].zodiac) || '—')
+    ).join(' · ') + '</div>';
+  }
+  html += '<div class="algo-note-sub2">权重 = 各模型近60期影子回测命中率超基线(0.4786)换算的融合贡献占比；超额≤0 自动停权。' +
+          '三个指标（23码/平特肖/6肖）取自同一份融合分数，只是取法不同：23码=号码分前23、' +
+          '平特肖=生肖聚合最高、6肖=生肖聚合前6（生肖聚合已除以各生肖号数消除偏置）。事前预测存档制，只做事前不事后重算。</div>';
+  html += '</div>';
+  el.innerHTML = html;
+}
+
 function renderComposite(pred, nextPeriod) {
   const isFused = !!(pred && pred.details);
-  setText('composite-title', '📊 23码预测 ' + (isFused ? '(前10算法融合)' : '(尾数热号法)') + ' — 第 ' + nextPeriod + ' 期');
+  const nAlgo = isFused ? Object.keys(pred.weights || {}).length : 0;
+  const algoTag = isFused ? '(' + nAlgo + '模型融合)' : '(尾数热号法)';
+  setText('composite-title', '📊 23码预测 ' + algoTag + ' — 第 ' + nextPeriod + ' 期');
   setHtml('composite-codes',
     pred.codes.map(n => '<span class="num-ball">' + pad2(n) + '</span>').join(''));
-  setText('zodiac-title', '🐲 生肖预测 (平特肖' + (isFused ? '·前10算法融合' : '') + ') — 第 ' + nextPeriod + ' 期');
+  setText('zodiac-title', '🐲 生肖预测 (平特肖' + (isFused ? '·' + nAlgo + '模型融合' : '') + ') — 第 ' + nextPeriod + ' 期');
   // 每个生肖对应的号码（2026年：马5个号，其余11生肖各4个）
   const numsByZ = {}; ZODIACS.forEach(z => numsByZ[z] = []);
   for (let n = 1; n <= 49; n++) numsByZ[getNumberZodiac(n)].push(n);
@@ -1849,12 +1896,16 @@ function renderComposite(pred, nextPeriod) {
   top3.forEach((z, i) => {
     html += (i > 0 ? '<br>' : '') + z + '：' + numsByZ[z].map(pad2).join(' ');
   });
-  html += '<br>※ 马为5个号(01,13,25,37,49)，其余生肖各4个；上方百分比为' + (isFused ? '10种算法加权融合权重占比' : '近30期7球频率占比') + '（非命中概率）</div>';
+  html += '<br>※ 马为5个号(01,13,25,37,49)，其余生肖各4个；上方百分比为' + (isFused ? 'Ensemble 融合贡献占比' : '近30期7球频率占比') + '（非命中概率）</div>';
   setHtml('zodiac-result', html);
+  // 三个指标卡片的算法说明（23码 / 平特肖 / 6肖）
+  renderAlgoNote(pred, 'composite-algo');
+  renderAlgoNote(pred, 'zodiac-algo');
+  renderAlgoNote(pred, 'six-algo');
 }
 
 function renderSixZodiac(pred, nextPeriod) {
-  setText('six-title', '🎯 6肖推荐 (特码' + (pred && pred.details ? '·融合' : '') + ') — 第 ' + nextPeriod + ' 期');
+  setText('six-title', '🎯 6肖推荐 (特码' + (pred && pred.details ? '·' + Object.keys(pred.weights || {}).length + '模型融合' : '') + ') — 第 ' + nextPeriod + ' 期');
   const six = pred.six || [];
   // 49 个号按生肖分组，方便对照购买（2026年：马5个号，其余11生肖各4个）
   const numsByZ = {}; ZODIACS.forEach(z => numsByZ[z] = []);
