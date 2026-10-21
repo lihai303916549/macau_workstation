@@ -42,19 +42,31 @@ function gen(){
   const now = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ');
 
   for (const p of periods) {
-    const bet = (preds[p] && preds[p].zodiac) || '';
+    const pred = preds[p] || {};
+    const bet = pred.zodiac || '';
     if (!bet) continue;                       // 无押注预测 → 跳过（等同桌面表空行）
+    const skipped = !!pred.skipped;            // v6：共识一致度不足 → 该期未下注
+    const agree = (pred.consensus && typeof pred.consensus.agree === 'number')
+      ? pred.consensus.agree : null;
     const odds = bet.indexOf('马') >= 0 ? 0.8 : 1.0;
-    const unit = xround((capital || CAPITAL_START) / RISK / 1);   // 押肖数恒 1
     const j = judged[p];
     let zodiac = '', result = '开奖中', pnl = '?';
-    if (j) {  // 已开奖已判定
-      trades++;
-      const hit = j.zodiac_hit === 1;
-      if (hit) { wins++; zodiac = bet; result = '赢'; pnl = Math.round(unit * (odds - 1 + 1)); }
-      else { zodiac = '猫'; result = '亏'; pnl = -unit; }
-      totalPnl += pnl;
-      capital += pnl;
+    let unit = 0, stake = 0;
+    if (skipped) {
+      // 未下注：不产生盈亏，本金不变
+      result = '未下注(共识不足)';
+      pnl = 0;
+    } else {
+      unit = xround((capital || CAPITAL_START) / RISK / 1);   // 押肖数恒 1
+      stake = unit;
+      if (j) {  // 已开奖已判定
+        trades++;
+        const hit = j.zodiac_hit === 1;
+        if (hit) { wins++; zodiac = bet; result = '赢'; pnl = Math.round(unit * (odds - 1 + 1)); }
+        else { zodiac = '猫'; result = '亏'; pnl = -unit; }
+        totalPnl += pnl;
+        capital += pnl;
+      }
     }
     rows.push({
       period: +p,
@@ -63,10 +75,12 @@ function gen(){
       count: 1,
       result: result,
       unit: unit,
-      stake: unit,          // 单押1肖：投注额=单价
+      stake: stake,          // 单押1肖：投注额=单价
       pnl: pnl,
       capital: capital,
-      bet: bet + ',',
+      bet: skipped ? '' : (bet + ','),
+      agree: agree,
+      skipped: skipped,
     });
   }
 
