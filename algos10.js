@@ -1,17 +1,21 @@
 'use strict';
 /**
- * 六子 —— 预测引擎 v5（2026-10-20 用户定版，替换 v4 全部算法）
- * ==================== 模型清单（用户指定5个，旧模型已全部删除）====================
- * A类·号码级打分模型（5个，各输出49维原始分，分高=更可能出）：
+ * 六子 —— 预测引擎 v5.6（2026-10-21 用户定版：删除 LCG 纯随机模型，剩 4 个纯数据驱动模型）
+ * ==================== 模型清单（4个，全部基于历史数据学习）====================
  *   1) RNN 循环神经网络      —— 49维7球序列，tanh隐层16，滑窗20步BPTT
  *   2) LSTM 长短期记忆       —— 标准i/f/o/g门，隐层16，滑窗20步BPTT
  *   3) Transformer           —— 单头自注意力 d=16 window=12 + FFN32，正弦位置编码
- *   4) LCG 线性同余          —— x=(a·x+c) mod 2^32（Math.imul保精度），随机派基准尺
- *   5) CNN 卷积神经网络      —— T=20×49时序图，2个kernel=3一维卷积 + FC49
- * D类·框架层（混合架构，保留）：
- *   1) Ensemble 动态融合    —— 5模型归一化后按动态权重加权融合（= 混合架构）
+ *   4) CNN 卷积神经网络      —— T=20×49时序图，2个kernel=3一维卷积 + FC49
+ * 框架层（混合架构，保留）：
+ *   1) Ensemble 动态融合    —— 4模型归一化后按动态权重加权融合（= 混合架构）
  *   2) Walk-forward 优化    —— 每天预测前对近60期影子回测，命中超额=当天话语权
- *   4) 多属性命中判定       —— judgeDraw：23码/平特肖/6肖三层判定（导出供 update.js 用）
+ *   3) 多属性命中判定       —— judgeDraw：23码/平特肖/6肖三层判定（导出供 update.js 用）
+ *
+ * ⚠️ v5.6 变更（用户指令）：删除 LCG 线性同余生成器——
+ *   它是纯伪随机数发生器、不看任何历史数据，却占 Ensemble 25%~47.8% 决策权重，
+ *   等于四分之一的推荐由抛硬币决定；且固定种子时每期输出完全相同（曾连推10期"鸡"）。
+ *   现融合成员 4 个全部基于 1390 期历史学习，决策 100% 来自数据。
+ *   随机基准线不再用模型估计，改用理论值标注：平特肖 1-(11/12)^7 ≈ 46.3%。
  *
  * ⚠️ 深度学习训练成本控制（关键工程决策）：
  *   慢模型（rnn/lstm/transformer/cnn）在 Walk-forward 回测中不每期重训——
@@ -61,26 +65,11 @@ function balls(d){ return [...d.numbers, d.special]; }
 // 每期49维0/1特征（7球位置=1）
 function feats49(d){ const x=new Float64Array(49); for(const n of balls(d)) x[n-1]=1; return x; }
 
-// ================= 4) LCG（随机派基准尺） =================
-// ⚠️ v5.5 修复：原实现种子恒定(20261020) → 每次调用输出完全相同的49维分数，
-//    导致「每期预测都推同一个生肖」（实测连推10期全是鸡），且它占47.8%权重时
-//    会把整个 Ensemble 结果焊死。现在种子按期号派生 → 每期输出不同的伪随机数，
-//    回归为真正的随机基准尺，权重由 Walk-forward 按真实命中率自动摊薄。
-function algoLCG(seed){
-  let x = (seed >>> 0) || 20261020;
-  const a = 1664525, c = 1013904223;
-  const sc = new Array(49);
-  for (let n = 0; n < 49; n++) {
-    x = (Math.imul(a, x) + c) >>> 0;
-    sc[n] = x / 4294967296;
-  }
-  return sc;
-}
-// 由期号派生每期种子（同一期永远一致→可复现；不同期不同→真随机基准）
-function lcgSeedOf(period){
-  const seq = parseInt(String(period).slice(4), 10) || 0;
-  return (20261020 + seq * 2654435761) >>> 0;
-}
+// ================= LCG 已删除（v5.6，2026-10-21 用户指令）====================
+// 原为「随机派基准尺」的线性同余生成器：纯伪随机、不看任何历史数据，
+// 却占 Ensemble 25%~47.8% 决策权重 → 四分之一的推荐由抛硬币决定。
+// 已被用户下令删除，融合成员只剩 4 个全部基于历史数据学习的深度学习模型。
+// 随机基准线改用理论值直接标注（平特肖 1-(11/12)^7 ≈ 46.3%）。
 
 // ================= 1) RNN 循环神经网络 =================
 // h_t = tanh(Wxh·x_t + Whh·h_{t-1} + bh)；o = sigmoid(Who·h_t + bo)
@@ -395,7 +384,7 @@ function cnnFwd(m, hist){
 //    是49维号码，跨年可比）；【回测】只用2026年部分——生肖映射每年春节切换，早年数据
 //    生肖判定会错，不进回测。
 const WF_BASELINE = 0.4786;
-const MODEL_KEYS = ['rnn','lstm','transformer','lcg','cnn'];
+const MODEL_KEYS = ['rnn','lstm','transformer','cnn'];
 const DL_KEYS = ['rnn','lstm','transformer','cnn'];
 const DL_TRAIN = { rnn: rnnTrain, lstm: lstmTrain, transformer: trTrain, cnn: cnnTrain };
 const DL_FWD   = { rnn: rnnFwd,   lstm: lstmFwd,   transformer: trFwd,   cnn: cnnFwd };
@@ -420,7 +409,7 @@ function walkForwardWeights(hist, w=60){
       for(const n of MODEL_KEYS){
         const sc = DL_KEYS.includes(n)
           ? (models[n] ? DL_FWD[n](models[n], h) : new Array(49).fill(0.5))
-          : algoLCG(lcgSeedOf(d.period));   // 随机派按期号换种子（v5.5）
+          : new Array(49).fill(0.5);   // LCG 已删除（v5.6），此处不再有随机成员
         const tz=top1Z(sc);
         const hit=seven.some(x=>zOf(x)===tz)?1:0;
         hits[n][1]++; hits[n][0]+=hit;
@@ -466,7 +455,7 @@ function top1Z(sc){
 // ================= D1·Ensemble 主入口（混合架构） =================
 function predictAll(hist){
   rngReset(20261020); // v5 种子
-  // 1) 4个深度学习模型用全量历史训练（最早一期到最新一期，用户2026-10-20要求）+ LCG 确定性
+  // 1) 4个深度学习模型用全量历史训练（最早一期到最新一期，用户2026-10-20要求）
   const models={};
   for(const n of DL_KEYS) models[n]=DL_TRAIN[n](hist);
   // 2) D2 Walk-forward 近60期影子回测 → 当天各模型话语权
@@ -474,7 +463,7 @@ function predictAll(hist){
   // 3) D1 Ensemble：归一化后按动态权重加权融合
   const raw={};
   for(const n of DL_KEYS) raw[n]=DL_FWD[n](models[n], hist);
-  raw.lcg=algoLCG(lcgSeedOf(hist[hist.length-1].period));   // 随机派按期号换种子（v5.5）
+  // LCG 已删除（v5.6）——融合成员全部基于历史数据学习
   const fused=new Float64Array(49);
   let wsum=0;
   for(const k of MODEL_KEYS){
