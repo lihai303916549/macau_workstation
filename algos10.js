@@ -634,7 +634,13 @@ function predictAll(hist){
   const details={};
   for(const k of MODEL_KEYS) details[k]=derive(normalize(raw[k]));
   const consensus = consensusOf(details);
-  return { fused: derive(fused), details, weights: W, consensus };
+  // 4.5) 融合后的12生肖分数全景（网页展示：让"为什么是这个生肖"看得见）
+  const zodiacScores = [];
+  for(let z=0;z<12;z++) zodiacScores.push(0);
+  const cnt = new Array(12).fill(0);
+  for(let n=1;n<=49;n++){ const z=zOf(n); zodiacScores[z]+=fused[n-1]; cnt[z]++; }
+  for(let z=0;z<12;z++) zodiacScores[z]/=(cnt[z]||1);
+  return { fused: derive(fused), details, weights: W, consensus, zodiacScores };
 }
 
 // ================= 多属性命中判定 =================
