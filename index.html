@@ -1830,13 +1830,12 @@ function setHtml(id, html) {
   if (el) el.innerHTML = html;
 }
 
-const ALGO_LABEL = { rnn: 'RNN', lstm: 'LSTM', transformer: 'Transformer', lcg: 'LCG', cnn: 'CNN' };
+const ALGO_LABEL = { rnn: 'RNN', lstm: 'LSTM', transformer: 'Transformer', cnn: 'CNN' };
 const ALGO_DESC = {
-  rnn: '循环神经网络',
-  lstm: '长短期记忆网络',
-  transformer: 'Transformer 注意力',
-  lcg: '线性同余生成器（随机基准尺）',
-  cnn: '卷积神经网络',
+  rnn: '循环神经网络（滑窗BPTT，tanh隐层16）',
+  lstm: '长短期记忆网络（i/f/o/g门，隐层16）',
+  transformer: 'Transformer（单头自注意力 d=16 / window=12）',
+  cnn: '卷积神经网络（20×49时序图，2核k=3）',
 };
 
 // 在 23码 / 平特肖 / 6肖 三个卡片下方标注：本指标由哪些算法算出、各自权重多少
@@ -1847,7 +1846,7 @@ function renderAlgoNote(pred, targetId) {
   const keys = Object.keys(pred.weights);
   const sum = keys.reduce((a, k) => a + (pred.weights[k] || 0), 0) || 1;
   let html = '<div class="algo-note">';
-  html += '<div class="algo-note-title">🧠 Ensemble 动态融合 · ' + keys.length + ' 模型 · Walk-forward 近60期回测定权重</div>';
+  html += '<div class="algo-note-title">🧠 Ensemble 动态融合 · ' + keys.length + ' 模型 · 全部基于历史数据学习（无随机成分）</div>';
   html += '<div>' + keys.map(k => {
     const w = pred.weights[k] || 0;
     const pct = w / sum * 100;
@@ -1861,7 +1860,9 @@ function renderAlgoNote(pred, targetId) {
   }
   html += '<div class="algo-note-sub2">权重 = 各模型近60期影子回测命中率超基线(0.4786)换算的融合贡献占比；超额≤0 自动停权。' +
           '三个指标（23码/平特肖/6肖）取自同一份融合分数，只是取法不同：23码=号码分前23、' +
-          '平特肖=生肖聚合最高、6肖=生肖聚合前6（生肖聚合已除以各生肖号数消除偏置）。事前预测存档制，只做事前不事后重算。</div>';
+          '平特肖=生肖聚合最高、6肖=生肖聚合前6（生肖聚合已除以各生肖号数消除偏置）。' +
+          '随机基准：平特肖纯随机理论值 1-(11/12)^7 ≈ 46.3%，6肖 ≈ 50%，23码 ≈ 47%（23/49）——' +
+          '各模型回测命中需高于此线才算真信号。事前预测存档制，只做事前不事后重算。</div>';
   html += '</div>';
   el.innerHTML = html;
 }
