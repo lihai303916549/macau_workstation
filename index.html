@@ -1916,6 +1916,26 @@ function renderComposite(pred, nextPeriod) {
             '<span style="width:48px;">' + p.toFixed(1) + '%</span></div>';
   });
   html += '</div>';
+  // 12生肖融合分数全景（v8.1）：让"为什么是这个生肖"一眼看得见
+  if (pred.zodiacScores && pred.zodiacScores.length === 12) {
+    const zs = pred.zodiacScores;
+    const mx = Math.max.apply(null, zs);
+    html += '<div style="margin-top:12px;">';
+    html += '<div style="font-size:10px;opacity:.65;margin-bottom:5px;line-height:1.6;">12生肖融合分数全景 · 绿柱=融合主推；各生肖分数越接近=模型分歧越大（分数已除以各生肖号数，消除"马5个号"的天然优势）</div>';
+    html += '<div style="display:flex;gap:3px;align-items:flex-end;">';
+    for (let i = 0; i < 12; i++) {
+      const z = ZODIACS[i], v = zs[i], w = mx > 0 ? (v / mx) : 0;
+      const isTop = (z === top1);
+      html += '<div style="flex:1;min-width:0;text-align:center;">' +
+        '<div style="height:30px;display:flex;align-items:flex-end;justify-content:center;">' +
+          '<div style="width:100%;height:' + Math.max(5, Math.round(w * 30)) + 'px;background:' + (isTop ? 'var(--green)' : 'var(--accent)') + ';opacity:' + (isTop ? '1' : '.42') + ';border-radius:2px 2px 0 0;"></div>' +
+        '</div>' +
+        '<div style="font-size:10px;color:' + (isTop ? 'var(--green)' : 'var(--text-muted)') + ';font-weight:' + (isTop ? '700' : '400') + ';">' + z + '</div>' +
+        '<div style="font-size:9px;opacity:.55;">' + v.toFixed(2) + '</div>' +
+      '</div>';
+    }
+    html += '</div></div>';
+  }
   html += '<div style="font-size:10px;opacity:.65;margin-top:6px;line-height:1.75;">';
   top3.forEach((z, i) => {
     html += (i > 0 ? '<br>' : '') + z + '：' + numsByZ[z].map(pad2).join(' ');
