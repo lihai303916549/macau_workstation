@@ -1,31 +1,29 @@
-'use strict';
 /**
- * 六子 —— 预测引擎 v6（2026-10-21 用户定版：12 模型 + 共识投票层）
- * ==================== 模型清单（12个，全部基于历史数据学习）====================
- * 【深度学习 / 现代时序 4 个】
- *   1) DLinear          —— 趋势分解(移动平均) + 残差AR(1)线性回归，线性时序、抗噪
- *   2) LSTM             —— 标准i/f/o/g门，隐层16，滑窗20步BPTT
- *   3) Transformer      —— 单头自注意力 d=16 window=12 + FFN32，正弦位置编码
- *   4) CNN              —— T=20×49时序图，2个kernel=3一维卷积 + FC49
+ * 六子 —— 预测引擎 v7（2026-10-21 用户定版：精简至 9 个模型）
+ * ==================== 模型清单（9个，全部基于历史数据学习）====================
+ * 【现代时序 / 卷积 3 个】
+ *   1) N-HiTS          —— 多尺度块线性(8/16/32期) + 残差 + 加性聚合，层级线性
+ *   2) LSTM            —— 标准i/f/o/g门，隐层16，滑窗20步BPTT
+ *   3) TCN             —— 因果膨胀卷积(dil 1/2/4) + 池化 + FC（实测权重第一）
+ *   4) CNN             —— T=20×49时序图，2个kernel=3一维卷积 + FC49
  * 【统计 / 机器学习 3 个】
  *   5) 卡尔曼滤波/状态空间 —— 局部水平模型(随机游走)，逐号贝叶斯平滑+一步外推
- *   6) SSA 奇异谱分析   —— 轨迹矩阵+power iteration主成分+线性外推（对特码序列）
- *   7) LightGBM/GBDT    —— 深度3的提升树×20，每号独立模型（4维特征）
- * 【优化 / 进化 5 个】（都优化"生肖权重向量"，适应度=近30期平特肖命中）
+ *   6) LightGBM/GBDT    —— 提升树×15深度3，每号独立模型
+ *   7) CatBoost        —— 对称树(oblivious)depth4×20轮 + 因果目标统计特征
+ * 【优化 / 进化 2 个】（优化"12维生肖权重向量"，适应度=近30期平特肖命中）
  *   8)  遗传算法 GA     —— 锦标赛选择+交叉+变异
  *   9)  粒子群 PSO      —— 速度/位置更新
- *  10) 模拟退火 SA      —— 邻域扰动+退火
- *  11) 蚁群 ACO         —— 信息素轮盘+挥发
- *  12) 贝叶斯优化 BO    —— 高斯过程代理 + 期望改进(EI) + 随机投影降维(12D→4D)
  * 【框架层】
- *   1) Ensemble 动态融合 —— 12模型归一化后按 Walk-forward 超额权重加权融合
+ *   1) Ensemble 动态融合 —— 9模型归一化后按 Walk-forward 超额权重加权融合
  *   2) Walk-forward 优化 —— 近60期影子回测，命中率超基线(0.4786)=当天话语权
  *   3) 多属性命中判定    —— judgeDraw：23码/平特肖/6肖三层判定
- *   4) 共识投票层(新)    —— 12模型主推生肖投票；一致度≥60% 正常下注，分歧大则【跳过不下注】
+ *   4) 共识投票层       —— 9模型主推生肖投票；一致度≥60% 正常下注，分歧大则【跳过不下注】
  *
- * ⚠️ 成本控制：慢模型(rnn→dlinear/lstm/transformer/cnn/lgbm)预训练到回测起点后只前向；
- *   优化类(ga/pso/sa/aco/bo)每期都要重跑（种群30/代15/回测30期），单次≈50ms。
- * 训练范围：全量历史（最早一期到最新一期）。固定种子20261019 → 同数据必得同预测。
+ * ⚠️ v7 精简（用户定版）：从15个删到9个——删 DLinear(被N-HiTS取代)、Transformer(停权)、
+ *   SSA(停权)、贝叶斯优化(停权)、模拟退火+蚁群(与PSO/GA同质)。
+ *   关键理由：模型越多共识越难达成（12个时58.3% → 15个时46.7%），共识层老触发skip=天天不下注。
+ * ⚠️ 成本控制：慢模型(lstm/tcn/cnn/lgbm/catboost)预训练到回测起点后只前向；
+ *   优化类(ga/pso)每期重跑。训练范围：全量历史。固定种子20261019 → 可复现。
  * 事前预测铁律：只做事前预测并存档；开奖后按存档判定记录，严禁事后重算。
  */
 const STD = {1:'马',2:'蛇',3:'龙',4:'兔',5:'虎',6:'牛',7:'鼠',8:'猪',9:'狗',10:'鸡',11:'猴',12:'羊'};
@@ -87,32 +85,6 @@ function zodiacScores(sc){
   for(let n=1;n<=49;n++) zs[zOf(n)]+=sc[n-1];
   for(let z=0;z<12;z++) zs[z]/=ZODIAC_NUMS[z];
   return zs;
-}
-
-// ================= 1) DLinear（趋势分解 + 残差AR(1)） =================
-function algoDLinear(hist, W=60, K=25){
-  const win = hist.slice(-W);
-  const sc = new Array(49);
-  for (let n=1;n<=49;n++){
-    const y = win.map(d => balls(d).includes(n) ? 1 : 0);
-    // 趋势：移动平均核 K
-    const trend = y.map((_, t) => {
-      let s=0,c=0; for(let k=Math.max(0,t-K+1);k<=t;k++){ s+=y[k]; c++; } return s/c;
-    });
-    // 残差 AR(1)：r_t = a*r_{t-1} + b（最小二乘）
-    const r = y.map((v,t)=>v-trend[t]);
-    let Sxy=0,Sxx=0,Sx=0,Sy=0,n2=0;
-    for(let t=1;t<r.length;t++){ Sxy+=r[t]*r[t-1]; Sxx+=r[t-1]*r[t-1]; Sx+=r[t-1]; Sy+=r[t]; n2++; }
-    const den = n2*Sxx - Sx*Sx;
-    const a = Math.abs(den)>1e-9 ? (n2*Sxy - Sx*Sy)/den : 0;
-    const b = n2>0 ? (Sy - a*Sx)/n2 : 0;
-    // 趋势线性外推一步
-    const tLast=trend[trend.length-1], tPrev=trend[trend.length-2]||tLast;
-    const trendNext = tLast + (tLast - tPrev);
-    const rNext = a*r[r.length-1] + b;
-    sc[n-1] = trendNext + rNext;
-  }
-  return sc;
 }
 
 // ================= 2) LSTM =================
@@ -201,73 +173,6 @@ function lstmFwd(m, hist){
   return sc;
 }
 
-// ================= 3) Transformer =================
-const TR_D = 16, TR_WIN = 12, TR_EPOCHS = 3;
-function trTrain(hist){
-  const data=hist.map(feats49);
-  const Emb=Array.from({length:49},()=>Array.from({length:TR_D},()=>randn()*0.2));
-  const Wq=Array.from({length:TR_D},()=>Array.from({length:TR_D},()=>randn()*0.2));
-  const Wk=Array.from({length:TR_D},()=>Array.from({length:TR_D},()=>randn()*0.2));
-  const Wv=Array.from({length:TR_D},()=>Array.from({length:TR_D},()=>randn()*0.2));
-  const Wo=Array.from({length:TR_D},()=>Array.from({length:TR_D},()=>randn()*0.2));
-  const Wf1=Array.from({length:32},()=>Array.from({length:TR_D},()=>randn()*0.2));
-  const Wf2=Array.from({length:TR_D},()=>Array.from({length:32},()=>randn()*0.2));
-  const Wy=Array.from({length:49},()=>Array.from({length:TR_D},()=>randn()*0.2));
-  const by=new Array(49).fill(0);
-  const lr=0.05;
-  const posEnc=(pos)=>{ const v=new Array(TR_D); for(let i=0;i<TR_D;i++) v[i]=(i%2===0?Math.sin(pos/Math.pow(10000,i/TR_D)):Math.cos(pos/Math.pow(10000,(i-1)/TR_D))); return v; };
-  const samples=Math.max(1, data.length-TR_WIN);
-  for(let ep=0;ep<TR_EPOCHS;ep++){
-    for(let s=0;s<samples;s+=4){
-      const win=data.slice(s,s+TR_WIN);
-      const y=data[s+TR_WIN] || data[s+TR_WIN-1];
-      const E=win.map((x,pos)=>{ const e=new Array(TR_D); const p=posEnc(pos);
-        for(let d=0;d<TR_D;d++){ let s2=p[d]; for(let k=0;k<49;k++) s2+=Emb[k][d]*x[k]; e[d]=s2; } return e; });
-      const sc=new Array(TR_WIN);
-      for(let i=0;i<TR_WIN;i++){
-        const q=new Array(TR_D), kk=new Array(TR_D);
-        for(let d=0;d<TR_D;d++){ let aq=0,ak=0; for(let e=0;e<TR_D;e++){ aq+=Wq[d][e]*E[i][e]; ak+=Wk[d][e]*E[i][e]; } q[d]=aq; kk[d]=ak; }
-        for(let j=0;j<TR_WIN;j++){ let s2=0; for(let d=0;d<TR_D;d++) s2+=q[d]*kk[d]; sc[j]=s2/Math.sqrt(TR_D); }
-        const mx=Math.max(...sc); const ex=sc.map(v=>Math.exp(v-mx)); const sum=ex.reduce((a,b)=>a+b,0)||1;
-        const O=new Array(TR_D).fill(0);
-        for(let j=0;j<TR_WIN;j++){ const a=ex[j]/sum;
-          for(let d=0;d<TR_D;d++){ let vv=0; for(let e=0;e<TR_D;e++) vv+=Wv[d][e]*E[j][e]; O[d]+=a*vv; } }
-        for(let d=0;d<TR_D;d++){ let o=0; for(let e=0;e<TR_D;e++) o+=Wo[d][e]*O[d]; E[i][d]=E[i][d]+o; }
-      }
-      const F=E.map(o=>{ const h=new Array(32); for(let j=0;j<32;j++){ let s2=0; for(let d=0;d<TR_D;d++) s2+=Wf1[j][d]*o[d]; h[j]=Math.max(0,s2); }
-        const f=new Array(TR_D); for(let d=0;d<TR_D;d++){ let s2=0; for(let j=0;j<32;j++) s2+=Wf2[d][j]*h[j]; f[d]=s2; } return f; });
-      const last=E[TR_WIN-1].map((v,d)=>v+F[TR_WIN-1][d]);
-      const out=new Array(49);
-      for(let k=0;k<49;k++){ let s2=by[k]; for(let d=0;d<TR_D;d++) s2+=Wy[k][d]*last[d]; out[k]=sigmoid(s2); }
-      for(let k=0;k<49;k++){ const g=out[k]-y[k];
-        for(let d=0;d<TR_D;d++) Wy[k][d]-=lr*clip(g);
-        by[k]-=lr*clip(g); }
-    }
-  }
-  return {Emb,Wq,Wk,Wv,Wo,Wf1,Wf2,Wy,by,posEnc};
-}
-function trFwd(m, hist){
-  const data=hist.slice(-TR_WIN).map(feats49);
-  const win=data.length<TR_WIN ? [...new Array(TR_WIN-data.length).fill(null).map(()=>new Float64Array(49)), ...data] : data;
-  const E=win.map((x,pos)=>{ const e=new Array(TR_D); const p=m.posEnc(pos);
-    for(let d=0;d<TR_D;d++){ let s=p[d]; for(let k=0;k<49;k++) s+=m.Emb[k][d]*x[k]; e[d]=s; } return e; });
-  for(let i=0;i<TR_WIN;i++){
-    const q=new Array(TR_D), kk=new Array(TR_D);
-    for(let d=0;d<TR_D;d++){ let aq=0,ak=0; for(let e=0;e<TR_D;e++){ aq+=m.Wq[d][e]*E[i][e]; ak+=m.Wk[d][e]*E[i][e]; } q[d]=aq; kk[d]=ak; }
-    const sc=new Array(TR_WIN);
-    for(let j=0;j<TR_WIN;j++){ let s=0; for(let d=0;d<TR_D;d++) s+=q[d]*kk[d]; sc[j]=s/Math.sqrt(TR_D); }
-    const mx=Math.max(...sc); const ex=sc.map(v=>Math.exp(v-mx)); const sum=ex.reduce((a,b)=>a+b,0)||1;
-    for(let j=0;j<TR_WIN;j++){ const a=ex[j]/sum;
-      for(let d=0;d<TR_D;d++){ let vv=0; for(let e=0;e<TR_D;e++) vv+=m.Wv[d][e]*E[j][e]; E[i][d]+=a*vv; } }
-  }
-  const F=E.map(o=>{ const h=new Array(32); for(let j=0;j<32;j++){ let s=0; for(let d=0;d<TR_D;d++) s+=m.Wf1[j][d]*o[d]; h[j]=Math.max(0,s); }
-    const f=new Array(TR_D); for(let d=0;d<TR_D;d++){ let s=0; for(let j=0;j<32;j++) s+=m.Wf2[d][j]*h[j]; f[d]=s; } return f; });
-  const last=E[TR_WIN-1].map((v,d)=>v+F[TR_WIN-1][d]);
-  const sc=new Array(49);
-  for(let k=0;k<49;k++){ let s=m.by[k]; for(let d=0;d<TR_D;d++) s+=m.Wy[k][d]*last[d]; sc[k]=sigmoid(s); }
-  return sc;
-}
-
 // ================= 4) CNN =================
 const CNN_T = 20, CNN_K = 3, CNN_C = 2, CNN_EPOCHS = 5;
 function cnnTrain(hist){
@@ -338,58 +243,6 @@ function algoKalman(hist, W=60, Q=0.01, R=0.06){
     }
     sc[n-1] = x;   // 一步预测（状态水平）
   }
-  return sc;
-}
-
-// ================= 6) SSA 奇异谱分析 =================
-// 轨迹矩阵 → power iteration 求主成分 → 线性外推 → 高斯核（对特码序列）
-function algoSSA(hist, W=120, L=30, K=3, sigma=7){
-  const y = hist.slice(-W).map(d => d.special);
-  const N = y.length;
-  const sc = new Array(49).fill(1);
-  if (N < L + 5) return sc;
-  // 轨迹矩阵的行向量：x_t = (y_t, y_{t+1}, ..., y_{t+L-1})，M = Σ x x^T（L×L）
-  const M = Array.from({length:L},()=>new Array(L).fill(0));
-  for (let t=0;t+L<=N;t++){
-    for (let i=0;i<L;i++) for (let j=0;j<L;j++) M[i][j] += y[t+i]*y[t+j];
-  }
-  // power iteration 求前 K 个主成分（正交化）
-  const comps = [];
-  for (let c=0;c<K;c++){
-    let v = new Array(L).fill(0);
-    for (let i=0;i<L;i++) v[i] = randn();
-    let norm = Math.sqrt(v.reduce((a,b)=>a+b*b,0)) || 1;
-    v = v.map(x=>x/norm);
-    for (let it=0; it<40; it++){
-      const w = new Array(L).fill(0);
-      for (let i=0;i<L;i++){ let s=0; for(let j=0;j<L;j++) s+=M[i][j]*v[j]; w[i]=s; }
-      // 与已得成分正交化
-      for (const u of comps){
-        let d=0; for(let i=0;i<L;i++) d+=w[i]*u[i];
-        for(let i=0;i<L;i++) w[i]-=d*u[i];
-      }
-      const nw = Math.sqrt(w.reduce((a,b)=>a+b*b,0)) || 1;
-      v = w.map(x=>x/nw);
-    }
-    comps.push(v);
-  }
-  // 每个主成分：投影序列末段线性外推
-  let pred = 0;
-  for (const v of comps){
-    const z = [];
-    for (let t=0;t+L<=N;t++){ let s=0; for(let i=0;i<L;i++) s+=v[i]*y[t+i]; z.push(s); }
-    const seg = z.slice(-8);
-    // 最小二乘直线外推
-    const m = seg.length;
-    let Sx=0,Sy=0,Sxy=0,Sxx=0;
-    for (let i=0;i<m;i++){ Sx+=i; Sy+=seg[i]; Sxy+=i*seg[i]; Sxx+=i*i; }
-    const den = m*Sxx - Sx*Sx;
-    const a = Math.abs(den)>1e-9 ? (m*Sxy - Sx*Sy)/den : 0;
-    const b = (Sy - a*Sx)/m;
-    pred += a*m + b;
-  }
-  pred = clamp(pred, 1, 49);
-  for (let n=1;n<=49;n++) sc[n-1] = Math.exp(-((n-pred)*(n-pred))/(2*sigma*sigma));
   return sc;
 }
 
@@ -766,131 +619,23 @@ function algoPSO(hist, W=30, NP=24, IT=18){
   return weightsToScores(gBest, base);
 }
 
-// 10) 模拟退火 SA
-function algoSA(hist, W=30, STEPS=500, T0=0.5){
-  const base = baseZodiacScores(hist, W);
-  const evalW = w => evalZodiacWeights(w, hist, base, W);
-  let cur = Array.from({length:12},()=>rng()), curF = evalW(cur);
-  let best = cur.slice(), bestF = curF;
-  for (let s=0;s<STEPS;s++){
-    const T = T0 * (1 - s/STEPS) + 1e-3;
-    const cand = cur.slice();
-    const k = 1 + Math.floor(rng()*3);
-    for (let i=0;i<k;i++) cand[Math.floor(rng()*12)] = clamp(cand[Math.floor(rng()*12)] + (rng()-0.5)*0.5, 0, 1);
-    const f = evalW(cand);
-    if (f > curF || rng() < Math.exp((f-curF)/T)){ cur = cand; curF = f; }
-    if (f > bestF){ bestF = f; best = cand.slice(); }
-  }
-  return weightsToScores(best, base);
-}
-
-// 11) 蚁群 ACO（信息素轮盘 + 挥发强化）
-function algoACO(hist, W=30, ANTS=16, ROUNDS=18){
-  const base = baseZodiacScores(hist, W);
-  const evalW = w => evalZodiacWeights(w, hist, base, W);
-  const tau = new Array(12).fill(1);
-  let best=null, bestF=-1;
-  for (let r=0;r<ROUNDS;r++){
-    let roundBest = new Array(12).fill(0); let rf=-1;
-    for (let a=0;a<ANTS;a++){
-      // 按信息素轮盘选 3 个重点生肖（权重集中在这些生肖上）
-      const chosen = new Set();
-      for (let c=0;c<3;c++){
-        const tot = tau.reduce((x,y)=>x+y,0)||1;
-        let pick = rng()*tot, acc=0, idx=0;
-        for (let z=0;z<12;z++){ acc+=tau[z]; if(pick<=acc){ idx=z; break; } }
-        chosen.add(idx);
-      }
-      const w = new Array(12).fill(0.1);
-      for (const z of chosen) w[z] = 1;
-      const f = evalW(w);
-      for (const z of chosen) tau[z] += 0.15 * f;
-      if (f>rf){ rf=f; roundBest=w; }
-    }
-    for (let z=0;z<12;z++) tau[z] = tau[z]*0.85 + 0.05;
-    if (rf>bestF){ bestF=rf; best=roundBest; }
-  }
-  return weightsToScores(best || new Array(12).fill(1), base);
-}
-
-// 12) 贝叶斯优化 BO（高斯过程代理 + 期望改进EI + 随机投影 12D→4D）
-function gpFit(X, y, ls=1.0, sn=0.1){
-  const n = X.length;
-  const K = Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>
-    ls<=0?0:Math.exp(-sqDist(X[i],X[j])/(2*ls*ls)) + (i===j?sn:0)));
-  // 高斯消元求 K^{-1}
-  const A = K.map((row,i)=>row.slice().concat([y[i]]));
-  for (let i=0;i<n;i++){
-    let piv=i; for(let r=i+1;r<n;r++) if(Math.abs(A[r][i])>Math.abs(A[piv][i])) piv=r;
-    [A[i],A[piv]]=[A[piv],A[i]];
-    if(Math.abs(A[i][i])<1e-10) continue;
-    for(let r=0;r<n;r++){ if(r===i)continue; const f=A[r][i]/A[i][i]; for(let c=i;c<=n;c++) A[r][c]-=f*A[i][c]; }
-  }
-  const alpha=new Array(n);
-  for(let i=0;i<n;i++) alpha[i]=A[i][n]/(A[i][i]||1e-10);
-  const ymean = y.reduce((a,b)=>a+b,0)/(n||1);
-  return { X, ymean, alpha, ls, sn };
-}
-function sqDist(a,b){ let s=0; for(let i=0;i<a.length;i++){ const d=a[i]-b[i]; s+=d*d; } return s; }
-function gpPredict(gp, x){
-  const n=gp.X.length;
-  let mu=gp.ymean, var1=0;
-  for(let i=0;i<n;i++){
-    const k = gp.ls<=0?0:Math.exp(-sqDist(gp.X[i],x)/(2*gp.ls*gp.ls));
-    mu += gp.alpha[i]*k;
-    var1 += gp.alpha[i]*k;
-  }
-  const kxx = gp.ls<=0?0:1 + gp.sn;
-  const v = Math.max(1e-8, kxx - var1);
-  return { mu, sd: Math.sqrt(v) };
-}
-function algoBO(hist, W=30, DIM=4, EVALS=20){
-  const base = baseZodiacScores(hist, W);
-  const evalW = w => evalZodiacWeights(w, hist, base, W);
-  // 随机投影：12维 → DIM 维
-  const P = Array.from({length:12},()=>Array.from({length:DIM},()=>randn()));
-  const proj = w => { const v=new Array(DIM).fill(0);
-    for(let i=0;i<12;i++) for(let d=0;d<DIM;d++) v[d]+=w[i]*P[i][d];
-    return v; };
-  const unproj = z => { const w=new Array(12).fill(0);
-    for(let i=0;i<12;i++) for(let d=0;d<DIM;d++) w[i]+=z[d]*P[i][d];
-    return w.map(v=>clamp(v,0,1)); };
-  const X=[], Y=[];
-  for (let i=0;i<6;i++){
-    const w = Array.from({length:12},()=>rng());
-    X.push(proj(w)); Y.push(evalW(w));
-  }
-  let gp = gpFit(X, Y, 1.0, 0.05);
-  for (let e=0;e<EVALS-6;e++){
-    let bestX=null, bestEI=-Infinity;
-    for (let t=0;t<200;t++){
-      const z = Array.from({length:DIM},()=>rng());
-      const { mu, sd } = gpPredict(gp, z);
-      const ei = mu + 0.5*sd;   // 期望改进（简化）
-      if (ei>bestEI){ bestEI=ei; bestX=z; }
-    }
-    const w = unproj(bestX);
-    X.push(bestX); Y.push(evalW(w));
-    gp = gpFit(X, Y, 1.0, 0.05);
-  }
-  let bi=0; for(let i=1;i<Y.length;i++) if (Y[i]>Y[bi]) bi=i;
-  return weightsToScores(unproj(X[bi]), base);
-}
-
-// ================= 模型注册表 =================
-const MODEL_KEYS = ['nhits','dlinear','lstm','transformer','tcn','cnn','kalman','ssa','lgbm','catboost','ga','pso','sa','aco','bo'];
+// ================= 模型注册表（v7：精简至9个） =================
+// 保留理由：TCN/N-HiTS/LightGBM/CatBoost 权重>10%（实测有效且互补）；卡尔曼/PSO/GA 权重5-9%（思路独特）；
+//          LSTM/CNN 权重低但保留（深度学习代表，且有"起死回生"机制）。
+// 已删除：DLinear(被N-HiTS取代) / Transformer(停权) / SSA(停权) / 贝叶斯优化(停权) / 模拟退火+蚁群(与PSO/GA同质)
+// 删除理由：停权模型白烧算力不投票；同质模型抄多遍稀释共识——模型越多共识越难达成(12个58.3%→15个46.7%)，影响实际下注。
+const MODEL_KEYS = ['nhits','lstm','tcn','cnn','kalman','lgbm','catboost','ga','pso'];
 // 慢模型：预训练一次 + 回测期只前向
-const SLOW_KEYS = ['dlinear','lstm','transformer','tcn','cnn','lgbm','catboost'];
-const SLOW_TRAIN = { dlinear: null, lstm: lstmTrain, transformer: trTrain, tcn: tcnTrain, cnn: cnnTrain, lgbm: lgbmTrain, catboost: catTrain };
-const SLOW_FWD   = { dlinear: null, lstm: lstmFwd, transformer: trFwd, tcn: tcnFwd, cnn: cnnFwd, lgbm: lgbmFwd, catboost: catFwd };
+const SLOW_KEYS = ['lstm','tcn','cnn','lgbm','catboost'];
+const SLOW_TRAIN = { lstm: lstmTrain, tcn: tcnTrain, cnn: cnnTrain, lgbm: lgbmTrain, catboost: catTrain };
+const SLOW_FWD   = { lstm: lstmFwd, tcn: tcnFwd, cnn: cnnFwd, lgbm: lgbmFwd, catboost: catFwd };
 // 轻量/优化类：每期直接算（解析计算 + 优化迭代）
-const FAST_FNS = { nhits: algoNHiTS, kalman: algoKalman, ssa: algoSSA, ga: algoGA, pso: algoPSO, sa: algoSA, aco: algoACO, bo: algoBO };
+const FAST_FNS = { nhits: algoNHiTS, kalman: algoKalman, ga: algoGA, pso: algoPSO };
 
-// DLinear / N-HiTS 无需训练（纯解析计算），单独处理
+// N-HiTS 无需训练（纯解析计算），单独处理
 function modelScore(key, hist, model){
   let sc;
-  if (key==='dlinear') sc = algoDLinear(hist);
-  else if (key==='nhits') sc = algoNHiTS(hist);
+  if (key==='nhits') sc = algoNHiTS(hist);
   else if (SLOW_FWD[key]) sc = SLOW_FWD[key](model, hist);
   else sc = FAST_FNS[key](hist);
   // 防御：NaN/Inf 隔离（曾因 TCN 层间维度错配导致整条融合链 NaN，23码退化成1-23）
@@ -898,7 +643,7 @@ function modelScore(key, hist, model){
   return sc;
 }
 function modelTrain(key, hist){
-  if (key==='dlinear' || key==='nhits') return null;
+  if (key==='nhits') return null;
   return SLOW_TRAIN[key](hist);
 }
 
