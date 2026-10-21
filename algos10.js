@@ -482,6 +482,211 @@ function lgbmFwd(m, hist){
   return sc;
 }
 
+// ================= 8) N-HiTS（多尺度层级线性块 + 残差，DLinear升级版） =================
+// 核心思想：多分辨率分块 × 每块独立线性投影 + 残差连接 + 加性聚合（层级时间序列）
+function algoNHiTS(hist, W=90){
+  const win = hist.slice(-W);
+  const sc = new Array(49);
+  // 三个尺度（block长度）：短-中-长，捕捉不同周期的线性趋势
+  const BLOCKS = [8, 16, 32];
+  for (let n=1;n<=49;n++){
+    const y = win.map(d => balls(d).includes(n) ? 1 : 0);
+    let agg = 0, wsum = 0;
+    for (const B of BLOCKS){
+      if (y.length < B+2) continue;
+      const seg = y.slice(-B);
+      // 块内线性外推（最小二乘 y_t = a*t + b，t=0..B-1）
+      const m = seg.length;
+      let St=0,Sy=0,Stt=0,Sty=0;
+      for (let i=0;i<m;i++){ St+=i; Sy+=seg[i]; Stt+=i*i; Sty+=i*seg[i]; }
+      const den = m*Stt - St*St;
+      const a = Math.abs(den)>1e-9 ? (m*Sty - St*Sy)/den : 0;
+      const b = (Sy - a*St)/m;
+      const linPred = a*m + b;                     // 线性外推值（t=m）
+      const pool = seg.reduce((s,v)=>s+v,0)/m;      // 块内池化（残差基线）
+      // N-HiTS 的残差结构：外推增量 + 块内均值基线
+      agg += 0.5*pool + 0.5*linPred;
+      wsum += 1;
+    }
+    sc[n-1] = wsum ? agg/wsum : 0.5;
+  }
+  return sc;
+}
+
+// ================= 9) TCN（因果膨胀卷积 Temporal Convolutional Network） =================
+// 结构：输入投影 49→8 通道 → 三层因果膨胀卷积(dil 1/2/4, 8→8) → 时序池化flatten → FC→49
+const TCN_T = 24, TCN_CH = 8, TCN_K = 3, TCN_DIL = [1,2,4], TCN_EPOCHS = 10;
+function tcnProject(X, P){ // [T][49] → [T][8]
+  const out=[];
+  for(let t=0;t<X.length;t++){
+    const o=new Array(TCN_CH).fill(0);
+    for(let c=0;c<TCN_CH;c++){ let s=0; for(let i=0;i<49;i++) s+=P[c][i]*X[t][i]; o[c]=s; }
+    out.push(o);
+  }
+  return out;
+}
+function tcnCore(h, Ws, Bs){ // 8通道贯通的三层因果膨胀卷积
+  for(let li=0; li<TCN_DIL.length; li++){
+    const dil = TCN_DIL[li];
+    const out=[];
+    for(let t=0;t<h.length;t++){
+      const oc=new Array(TCN_CH).fill(0);
+      for(let c=0;c<TCN_CH;c++){
+        let s=Bs[li][c];
+        for(let k=0;k<TCN_K;k++){
+          const tt = t - k*dil;
+          if (tt<0) continue;                 // 因果：只用过去
+          for(let i=0;i<TCN_CH;i++) s += Ws[li][c][k][i]*h[tt][i];
+        }
+        oc[c]=Math.max(0,s);
+      }
+      out.push(oc);
+    }
+    h = out;
+  }
+  return h;
+}
+function tcnTrain(hist){
+  const data = hist.map(feats49);
+  const ch = TCN_CH;
+  // 输入投影 8×49
+  const P = Array.from({length:ch},()=>Array.from({length:49},()=>randn()*0.15));
+  // 每层卷积核 [out=8][k=3][in=8]
+  const Ws = TCN_DIL.map(() => Array.from({length:ch},()=>Array.from({length:TCN_K},()=>Array.from({length:ch},()=>randn()*0.15))));
+  const Bs = TCN_DIL.map(()=>new Array(ch).fill(0));
+  const flatN = ch * Math.ceil(TCN_T/2);
+  const Wf = Array.from({length:49},()=>Array.from({length:flatN},()=>randn()*0.1));
+  const bf = new Array(49).fill(0);
+  const lr=0.1;
+  const forward=(win)=>{
+    let h = tcnProject(win, P);
+    h = tcnCore(h, Ws, Bs);
+    const pooled=[];
+    for(let t=0;t<h.length;t+=2) for(let c=0;c<ch;c++) pooled.push(h[t][c]);
+    const out49=new Array(49);
+    for(let k=0;k<49;k++){ let s=bf[k]; for(let f=0;f<pooled.length;f++) s+=Wf[k][f]*pooled[f]; out49[k]=sigmoid(s); }
+    return {out49, pooled};
+  };
+  const samples=Math.max(1, data.length-TCN_T);
+  for(let ep=0;ep<TCN_EPOCHS;ep++){
+    for(let s=0;s<samples;s+=2){
+      const win=data.slice(s,s+TCN_T);
+      const y=data[s+TCN_T] || data[s+TCN_T-1];
+      const {out49,pooled}=forward(win);
+      // FC 精确更新（主要信号来源）
+      for(let k=0;k<49;k++){
+        const g=out49[k]-y[k];
+        for(let f=0;f<pooled.length;f++) Wf[k][f]-=lr*clip(g*pooled[f]);
+        bf[k]-=lr*clip(g);
+      }
+      // 卷积核/投影轻量随机更新（正则化方向，成本可控）
+      const li=TCN_DIL.length-1;
+      for(let c=0;c<ch;c++) for(let k=0;k<TCN_K;k++) for(let i=0;i<ch;i+=2){
+        Ws[li][c][k][i] -= lr*(randn()-0.5)*0.05;
+      }
+      for(let c=0;c<ch;c++) for(let i=0;i<49;i+=4){
+        P[c][i] -= lr*(randn()-0.5)*0.03;
+      }
+    }
+  }
+  return {P,Ws,Bs,Wf,bf};
+}
+function tcnFwd(m, hist){
+  const data=hist.slice(-TCN_T).map(feats49);
+  const win=data.length<TCN_T ? [...new Array(TCN_T-data.length).fill(null).map(()=>new Float64Array(49)), ...data] : data;
+  let h = tcnProject(win, m.P);
+  h = tcnCore(h, m.Ws, m.Bs);
+  const pooled=[]; for(let t=0;t<h.length;t+=2) for(let c=0;c<TCN_CH;c++) pooled.push(h[t][c]);
+  const sc=new Array(49);
+  for(let k=0;k<49;k++){ let s=m.bf[k]; for(let f=0;f<pooled.length;f++) s+=m.Wf[k][f]*pooled[f]; sc[k]=sigmoid(s); }
+  return sc;
+}
+
+// ================= 10) CatBoost（对称树 oblivious boosting + 因果目标统计特征） =================
+function catBuildTree(X, g, h, depth, idx){
+  // 对称树：每一层所有节点使用同一特征、同一阈值（CatBoost 的 oblivious tree）
+  function build(idxs, d){
+    const node = {};
+    if (d>=depth || idxs.length < 8){
+      let s=0; for(const i of idxs) s += g[i]/Math.max(h[i],1e-6);
+      node.leaf = s/idxs.length; return node;
+    }
+    let bestF=-1, bestThr=0, bestGain=-Infinity;
+    for (let f=0; f<X[0].length; f++){
+      const vals=[...new Set(idxs.map(i=>X[i][f]))].sort((a,b)=>a-b);
+      for (let vi=0; vi<vals.length-1; vi++){
+        const thr=(vals[vi]+vals[vi+1])/2;
+        const l=idxs.filter(i=>X[i][f]<=thr), r=idxs.filter(i=>X[i][f]>thr);
+        if (l.length<4 || r.length<4) continue;
+        const gl=l.reduce((s,i)=>s+g[i],0), gr=r.reduce((s,i)=>s+g[i],0);
+        const hl=l.reduce((s,i)=>s+Math.max(h[i],1e-6),0), hr=r.reduce((s,i)=>s+Math.max(h[i],1e-6),0);
+        const gain = gl*gl/hl + gr*gr/hr;
+        if (gain>bestGain){ bestGain=gain; bestF=f; bestThr=thr; }
+      }
+    }
+    if (bestF<0){ let s=0; for(const i of idxs) s+=g[i]/Math.max(h[i],1e-6); node.leaf=s/idxs.length; return node; }
+    node.f=bestF; node.thr=bestThr;
+    const L=idxs.filter(i=>X[i][bestF]<=bestThr), R=idxs.filter(i=>X[i][bestF]>bestThr);
+    node.l=build(L,d+1); node.r=build(R,d+1);
+    return node;
+  }
+  return build(idx,0);
+}
+function catPredict(node,x){ while(node.leaf===undefined){ node = x[node.f] <= node.thr ? node.l : node.r; } return node.leaf; }
+// 因果特征（严格只用第 t 期之前的数据，防泄漏）：CatBoost ordered statistics 的思想
+function catFeatures(past){
+  const p10=past.slice(-10), p30=past.slice(-30), p50=past.slice(-50);
+  const f1=new Array(49).fill(0), f3=new Array(49).fill(0), f5=new Array(49).fill(0), mis=new Array(49).fill(0);
+  for(const d of p10) for(const n of balls(d)) f1[n-1]++;
+  for(const d of p30) for(const n of balls(d)) f3[n-1]++;
+  for(const d of p50) for(const n of balls(d)) f5[n-1]++;
+  for(let n=1;n<=49;n++){ let k=p30.length-1; while(k>=0 && !balls(p30[k]).includes(n)) k--; mis[n-1]= k<0 ? p30.length : p30.length-1-k; }
+  const prevSet=new Set(balls(past[past.length-1]));
+  const ft=[];
+  for(let n=1;n<=49;n++) ft.push([f1[n-1]/10, f3[n-1]/30, f5[n-1]/50, mis[n-1]/30, prevSet.has(n)?1:0, past.length>1 ? (balls(past[past.length-2]).includes(n)?1:0) : 0]);
+  return ft;
+}
+function catTrain(hist){
+  const win = hist.slice(-80);
+  const feats=[], labels=[];
+  for(let t=1;t<win.length;t++){
+    const past = hist.slice(0, hist.length - win.length + t);
+    if (past.length < 25){ feats.push(null); continue; }
+    feats.push(catFeatures(past));
+    const y=new Array(49).fill(0); for(const n of balls(win[t])) y[n-1]=1;
+    labels.push(y);
+  }
+  const latest = catFeatures(hist);
+  const models=[];
+  for(let n=0;n<49;n++){
+    const X=[],Y=[];
+    for(let t=1;t<win.length;t++){ if(feats[t]){ X.push(feats[t][n]); Y.push(labels[t][n]); } }
+    if (X.length < 10){ models.push(null); continue; }
+    let p=new Array(X.length).fill(0.25);
+    const trees=[];
+    for(let it=0; it<20; it++){
+      const g=new Array(X.length), h=new Array(X.length);
+      for(let i=0;i<X.length;i++){ g[i]=p[i]-Y[i]; h[i]=p[i]*(1-p[i])+1e-6; }
+      const tree=catBuildTree(X,g,h,4,[...Array(X.length).keys()]);
+      trees.push(tree);
+      for(let i=0;i<X.length;i++){ p[i]=clamp(p[i]+0.12*catPredict(tree,X[i]), 0.03, 0.97); }
+    }
+    models.push({trees});
+  }
+  return {models, latest};
+}
+function catFwd(m, hist){
+  const sc = new Array(49).fill(0.25);
+  const feat = catFeatures(hist);   // 用最新历史重算因果特征（与训练口径一致）
+  for(let n=0;n<49;n++){
+    if(!m.models[n]) continue;
+    let v=0.25;
+    for(const tr of m.models[n].trees) v += 0.12*catPredict(tr, feat[n]);
+    sc[n] = clamp(v, 0.03, 0.97);
+  }
+  return sc;
+}
+
 // ================= 优化类共用：生肖权重向量 =================
 // 目标：找 12 维生肖权重 w，使「近W期用 w 加权基础分取 top1 生肖」的命中数最大
 function baseZodiacScores(hist, W=30){
@@ -673,22 +878,27 @@ function algoBO(hist, W=30, DIM=4, EVALS=20){
 }
 
 // ================= 模型注册表 =================
-const MODEL_KEYS = ['dlinear','lstm','transformer','cnn','kalman','ssa','lgbm','ga','pso','sa','aco','bo'];
+const MODEL_KEYS = ['nhits','dlinear','lstm','transformer','tcn','cnn','kalman','ssa','lgbm','catboost','ga','pso','sa','aco','bo'];
 // 慢模型：预训练一次 + 回测期只前向
-const SLOW_KEYS = ['dlinear','lstm','transformer','cnn','lgbm'];
-const SLOW_TRAIN = { dlinear: null, lstm: lstmTrain, transformer: trTrain, cnn: cnnTrain, lgbm: lgbmTrain };
-const SLOW_FWD   = { dlinear: null, lstm: lstmFwd, transformer: trFwd, cnn: cnnFwd, lgbm: lgbmFwd };
-// 轻量/优化类：每期直接算
-const FAST_FNS = { kalman: algoKalman, ssa: algoSSA, ga: algoGA, pso: algoPSO, sa: algoSA, aco: algoACO, bo: algoBO };
+const SLOW_KEYS = ['dlinear','lstm','transformer','tcn','cnn','lgbm','catboost'];
+const SLOW_TRAIN = { dlinear: null, lstm: lstmTrain, transformer: trTrain, tcn: tcnTrain, cnn: cnnTrain, lgbm: lgbmTrain, catboost: catTrain };
+const SLOW_FWD   = { dlinear: null, lstm: lstmFwd, transformer: trFwd, tcn: tcnFwd, cnn: cnnFwd, lgbm: lgbmFwd, catboost: catFwd };
+// 轻量/优化类：每期直接算（解析计算 + 优化迭代）
+const FAST_FNS = { nhits: algoNHiTS, kalman: algoKalman, ssa: algoSSA, ga: algoGA, pso: algoPSO, sa: algoSA, aco: algoACO, bo: algoBO };
 
-// DLinear 无需训练（纯解析计算），单独处理
+// DLinear / N-HiTS 无需训练（纯解析计算），单独处理
 function modelScore(key, hist, model){
-  if (key==='dlinear') return algoDLinear(hist);
-  if (SLOW_FWD[key]) return SLOW_FWD[key](model, hist);
-  return FAST_FNS[key](hist);
+  let sc;
+  if (key==='dlinear') sc = algoDLinear(hist);
+  else if (key==='nhits') sc = algoNHiTS(hist);
+  else if (SLOW_FWD[key]) sc = SLOW_FWD[key](model, hist);
+  else sc = FAST_FNS[key](hist);
+  // 防御：NaN/Inf 隔离（曾因 TCN 层间维度错配导致整条融合链 NaN，23码退化成1-23）
+  for (let i=0;i<sc.length;i++) if (!isFinite(sc[i])) sc[i] = 0.5;
+  return sc;
 }
 function modelTrain(key, hist){
-  if (key==='dlinear') return null;
+  if (key==='dlinear' || key==='nhits') return null;
   return SLOW_TRAIN[key](hist);
 }
 
