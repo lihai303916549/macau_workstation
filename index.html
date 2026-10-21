@@ -1831,26 +1831,20 @@ function setHtml(id, html) {
 }
 
 const ALGO_LABEL = {
-  nhits: 'N-HiTS', dlinear: 'DLinear', lstm: 'LSTM', transformer: 'Transformer', tcn: 'TCN', cnn: 'CNN',
-  kalman: '卡尔曼滤波', ssa: '奇异谱分析', lgbm: 'LightGBM', catboost: 'CatBoost',
-  ga: '遗传算法', pso: '粒子群', sa: '模拟退火', aco: '蚁群', bo: '贝叶斯优化'
+  nhits: 'N-HiTS', lstm: 'LSTM', tcn: 'TCN', cnn: 'CNN',
+  kalman: '卡尔曼滤波', lgbm: 'LightGBM', catboost: 'CatBoost',
+  ga: '遗传算法', pso: '粒子群'
 };
 const ALGO_DESC = {
-  nhits: 'N-HiTS 多尺度层级线性块 + 残差 + 加性聚合（DLinear升级版）',
-  dlinear: 'DLinear 趋势分解 + 残差AR(1)（线性时序抗噪）',
-  lstm: '长短期记忆网络（i/f/o/g门，隐层16）',
-  transformer: 'Transformer（单头自注意力 d=16 / window=12）',
-  tcn: 'TCN 时序卷积网络（因果膨胀卷积 dilations 1/2/4）',
+  nhits: 'N-HiTS 多尺度层级线性块（8/16/32期）+ 残差 + 加性聚合',
+  lstm: '长短期记忆网络（i/f/o/g门，隐层16，滑窗BPTT）',
+  tcn: 'TCN 时序卷积网络（因果膨胀卷积 dilations 1/2/4，实测权重第一）',
   cnn: '卷积神经网络（20×49时序图，2核k=3）',
   kalman: '卡尔曼滤波/状态空间（局部水平模型，逐号贝叶斯平滑）',
-  ssa: '奇异谱分析（轨迹矩阵+主成分+线性外推）',
-  lgbm: 'LightGBM/GBDT（提升树×15，深度3）',
+  lgbm: 'LightGBM/GBDT（提升树×15深度3，每号独立模型）',
   catboost: 'CatBoost 对称树 oblivious boosting + 因果目标统计特征',
-  ga: '遗传算法（锦标赛选择+交叉+变异）',
-  pso: '粒子群优化（速度/位置更新）',
-  sa: '模拟退火（邻域扰动+退火）',
-  aco: '蚁群算法（信息素轮盘+挥发）',
-  bo: '贝叶斯优化（高斯过程代理+期望改进EI）',
+  ga: '遗传算法（锦标赛选择+交叉+变异，优化生肖权重向量）',
+  pso: '粒子群优化（速度/位置更新，优化生肖权重向量）',
 };
 
 // 在 23码 / 平特肖 / 6肖 三个卡片下方标注：本指标由哪些算法算出、各自权重多少
