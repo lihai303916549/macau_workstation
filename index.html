@@ -210,7 +210,7 @@ h1 {
       <div class="stats-row" id="bet-kpi" style="margin-bottom:12px;">加载中...</div>
       <div style="max-height:420px; overflow:auto; border:1px solid var(--border); border-radius:6px;">
         <table class="backtest-table bet-table" style="min-width:760px;">
-          <thead><tr><th>期数</th><th>生肖</th><th>赔率</th><th>押肖数</th><th>赢亏</th><th>单价投注额</th><th>盈亏</th><th>累计本金</th><th>下注</th><th>隐藏</th></tr></thead>
+          <thead><tr><th>期数</th><th>生肖</th><th>赔率</th><th>押肖数</th><th>赢亏</th><th>单价投注额</th><th>盈亏</th><th>累计本金</th><th>下注</th><th>共识度</th><th>隐藏</th></tr></thead>
           <tbody id="bet-body"></tbody>
         </table>
       </div>
@@ -1830,12 +1830,24 @@ function setHtml(id, html) {
   if (el) el.innerHTML = html;
 }
 
-const ALGO_LABEL = { rnn: 'RNN', lstm: 'LSTM', transformer: 'Transformer', cnn: 'CNN' };
+const ALGO_LABEL = {
+  dlinear: 'DLinear', lstm: 'LSTM', transformer: 'Transformer', cnn: 'CNN',
+  kalman: '卡尔曼滤波', ssa: '奇异谱分析', lgbm: 'LightGBM',
+  ga: '遗传算法', pso: '粒子群', sa: '模拟退火', aco: '蚁群', bo: '贝叶斯优化'
+};
 const ALGO_DESC = {
-  rnn: '循环神经网络（滑窗BPTT，tanh隐层16）',
+  dlinear: 'DLinear 趋势分解+残差AR(1)（顶替RNN，线性时序更抗噪）',
   lstm: '长短期记忆网络（i/f/o/g门，隐层16）',
   transformer: 'Transformer（单头自注意力 d=16 / window=12）',
   cnn: '卷积神经网络（20×49时序图，2核k=3）',
+  kalman: '卡尔曼滤波/状态空间（局部水平模型，逐号贝叶斯平滑）',
+  ssa: '奇异谱分析（轨迹矩阵+主成分+线性外推）',
+  lgbm: 'LightGBM/GBDT（提升树×15，深度3）',
+  ga: '遗传算法（锦标赛选择+交叉+变异）',
+  pso: '粒子群优化（速度/位置更新）',
+  sa: '模拟退火（邻域扰动+退火）',
+  aco: '蚁群算法（信息素轮盘+挥发）',
+  bo: '贝叶斯优化（高斯过程代理+期望改进EI）',
 };
 
 // 在 23码 / 平特肖 / 6肖 三个卡片下方标注：本指标由哪些算法算出、各自权重多少
@@ -1863,6 +1875,19 @@ function renderAlgoNote(pred, targetId) {
           '平特肖=生肖聚合最高、6肖=生肖聚合前6（生肖聚合已除以各生肖号数消除偏置）。' +
           '随机基准：平特肖纯随机理论值 1-(11/12)^7 ≈ 46.3%，6肖 ≈ 50%，23码 ≈ 47%（23/49）——' +
           '各模型回测命中需高于此线才算真信号。事前预测存档制，只做事前不事后重算。</div>';
+  // 共识投票层
+  const cons = pred.consensus;
+  if (cons) {
+    const agreePct = (cons.agree * 100).toFixed(1);
+    const isSkip = cons.action === 'skip';
+    html += '<div class="algo-note-sub" style="margin-top:6px;">🗳 <b>共识投票</b>：' + keys.length + ' 个模型主推生肖投票，' +
+            '一致度 <b style="color:' + (isSkip ? 'var(--red)' : 'var(--green)') + '">' + agreePct + '%</b>' +
+            '（' + (cons.count || 0) + '/' + (cons.total || keys.length) + ' 票推 ' + (cons.top || '—') + '，阈值 60%）；' +
+            (isSkip ? '<b style="color:var(--red)">分歧过大 → 本期不押注（保护本金）</b>' : '分歧可控 → 正常下注') + '</div>';
+    const vt = Object.entries(cons.votes || {}).sort((a,b)=>b[1]-a[1])
+      .map(([z,c]) => z + '×' + c).join(' · ');
+    html += '<div class="algo-note-sub2">投票明细：' + vt + '</div>';
+  }
   html += '</div>';
   el.innerHTML = html;
 }
@@ -2098,6 +2123,10 @@ async function loadBetTable() {
     const rc = x.result === '赢' ? 'var(--green)' : x.result === '亏' ? 'var(--red)' : 'var(--text-muted)';
     const pc = (typeof x.pnl === 'number') ? (x.pnl >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text-muted)';
     const zc = x.zodiac === '猫' ? 'var(--red)' : 'var(--text)';
+    // 共识度列：v6 新增（一致度% + 跳过标记）
+    const agreeTxt = (x.agree === null || x.agree === undefined) ? '—' : (x.agree * 100).toFixed(0) + '%';
+    const agreeColor = x.skipped ? 'var(--red)' : (x.agree === null || x.agree === undefined) ? 'var(--text-muted)' : (x.agree >= 0.6 ? 'var(--green)' : 'var(--red)');
+    const agreeCell = '<td style="color:' + agreeColor + ';" title="' + (x.skipped ? '共识不足，本期未下注' : '模型主推一致度（阈值60%）') + '">' + agreeTxt + (x.skipped ? ' 跳过' : '') + '</td>';
     return '<tr data-period="' + x.period + '"><td>' + x.period + '</td>' +
       '<td style="color:' + zc + '">' + (x.zodiac || '—') + '</td>' +
       '<td>' + (x.odds === null || x.odds === undefined ? '—' : Number(x.odds).toFixed(1)) + '</td>' +
@@ -2107,6 +2136,7 @@ async function loadBetTable() {
       '<td style="color:' + pc + '">' + (typeof x.pnl === 'number' ? (x.pnl >= 0 ? '+' : '') + x.pnl.toLocaleString('zh-CN') : x.pnl) + '</td>' +
       '<td style="font-weight:600;">' + fmtBetNum(x.capital) + '</td>' +
       '<td>' + (x.bet || '—') + '</td>' +
+      agreeCell +
       '<td><button type="button" class="hide-btn" title="隐藏本期" onclick="hideRowBtn(\'' + HIDE_KEY_BET + '\',' + x.period + ',this)">隐藏</button></td></tr>';
   }).join('');
   applyHiddenRows(HIDE_KEY_BET, body);
