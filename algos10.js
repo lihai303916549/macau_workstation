@@ -1,28 +1,31 @@
 /**
- * 六子 —— 预测引擎 v7（2026-10-21 用户定版：精简至 9 个模型）
- * ==================== 模型清单（9个，全部基于历史数据学习）====================
- * 【现代时序 / 卷积 3 个】
+ * 六子 —— 预测引擎 v8（2026-10-21 用户定版：删 TCN + 权重窗口 60→200 期）
+ * ==================== 模型清单（8个，全部基于历史数据学习）====================
+ * 【现代时序 / 卷积 2 个】
  *   1) N-HiTS          —— 多尺度块线性(8/16/32期) + 残差 + 加性聚合，层级线性
  *   2) LSTM            —— 标准i/f/o/g门，隐层16，滑窗20步BPTT
- *   3) TCN             —— 因果膨胀卷积(dil 1/2/4) + 池化 + FC（实测权重第一）
- *   4) CNN             —— T=20×49时序图，2个kernel=3一维卷积 + FC49
+ *   3) CNN             —— T=20×49时序图，2个kernel=3一维卷积 + FC49
  * 【统计 / 机器学习 3 个】
- *   5) 卡尔曼滤波/状态空间 —— 局部水平模型(随机游走)，逐号贝叶斯平滑+一步外推
- *   6) LightGBM/GBDT    —— 提升树×15深度3，每号独立模型
- *   7) CatBoost        —— 对称树(oblivious)depth4×20轮 + 因果目标统计特征
+ *   4) 卡尔曼滤波/状态空间 —— 局部水平模型(随机游走)，逐号贝叶斯平滑+一步外推
+ *   5) LightGBM/GBDT    —— 提升树×15深度3，每号独立模型
+ *   6) CatBoost        —— 对称树(oblivious)depth4×20轮 + 因果目标统计特征
  * 【优化 / 进化 2 个】（优化"12维生肖权重向量"，适应度=近30期平特肖命中）
- *   8)  遗传算法 GA     —— 锦标赛选择+交叉+变异
- *   9)  粒子群 PSO      —— 速度/位置更新
+ *   7)  遗传算法 GA     —— 锦标赛选择+交叉+变异
+ *   8)  粒子群 PSO      —— 速度/位置更新
  * 【框架层】
- *   1) Ensemble 动态融合 —— 9模型归一化后按 Walk-forward 超额权重加权融合
- *   2) Walk-forward 优化 —— 近60期影子回测，命中率超基线(0.4786)=当天话语权
+ *   1) Ensemble 动态融合 —— 8模型归一化后按 Walk-forward 超额权重加权融合
+ *   2) Walk-forward 优化 —— 近200期影子回测（v8：60→200期，修短视）
  *   3) 多属性命中判定    —— judgeDraw：23码/平特肖/6肖三层判定
- *   4) 共识投票层       —— 9模型主推生肖投票；一致度≥60% 正常下注，分歧大则【跳过不下注】
+ *   4) 共识投票层       —— 8模型主推生肖投票；一致度≥60% 正常下注，分歧大则【跳过不下注】
  *
- * ⚠️ v7 精简（用户定版）：从15个删到9个——删 DLinear(被N-HiTS取代)、Transformer(停权)、
- *   SSA(停权)、贝叶斯优化(停权)、模拟退火+蚁群(与PSO/GA同质)。
- *   关键理由：模型越多共识越难达成（12个时58.3% → 15个时46.7%），共识层老触发skip=天天不下注。
- * ⚠️ 成本控制：慢模型(lstm/tcn/cnn/lgbm/catboost)预训练到回测起点后只前向；
+ * ⚠️ v8 变更（基于300期正式回测，2025-359~2026-293，显著性检验）：
+ *   ① 删除 TCN：300期平特肖命中率仅 32.3%（随机基线46.3%，p<0.001 显著反向），
+ *      但近60期运气好骗过了旧权重机制（60期窗口把"短期运气"当"真实能力"，LCG 当年同款）。
+ *   ② 权重回测窗口 60→200 期：让长期有效的模型拿权重（CatBoost 平特肖51.7% 升为主导 33.9%）。
+ *   ③ 实测排名（300期）：CatBoost 51.7% > LightGBM 50.3%(23码56.0% 显著) > LSTM/CNN 46.3%
+ *      > PSO 43.0% > 卡尔曼 42.7% > GA 41.7% > N-HiTS 40.7% > TCN 32.3%（已删）
+ *      仅用 lgbm+catboost 融合：平特肖 48.0% / 23码 54.0%（23码显著优于随机47%）
+ * ⚠️ 成本控制：慢模型(lstm/cnn/lgbm/catboost)预训练到回测起点后只前向；
  *   优化类(ga/pso)每期重跑。训练范围：全量历史。固定种子20261019 → 可复现。
  * 事前预测铁律：只做事前预测并存档；开奖后按存档判定记录，严禁事后重算。
  */
@@ -366,95 +369,6 @@ function algoNHiTS(hist, W=90){
   return sc;
 }
 
-// ================= 9) TCN（因果膨胀卷积 Temporal Convolutional Network） =================
-// 结构：输入投影 49→8 通道 → 三层因果膨胀卷积(dil 1/2/4, 8→8) → 时序池化flatten → FC→49
-const TCN_T = 24, TCN_CH = 8, TCN_K = 3, TCN_DIL = [1,2,4], TCN_EPOCHS = 10;
-function tcnProject(X, P){ // [T][49] → [T][8]
-  const out=[];
-  for(let t=0;t<X.length;t++){
-    const o=new Array(TCN_CH).fill(0);
-    for(let c=0;c<TCN_CH;c++){ let s=0; for(let i=0;i<49;i++) s+=P[c][i]*X[t][i]; o[c]=s; }
-    out.push(o);
-  }
-  return out;
-}
-function tcnCore(h, Ws, Bs){ // 8通道贯通的三层因果膨胀卷积
-  for(let li=0; li<TCN_DIL.length; li++){
-    const dil = TCN_DIL[li];
-    const out=[];
-    for(let t=0;t<h.length;t++){
-      const oc=new Array(TCN_CH).fill(0);
-      for(let c=0;c<TCN_CH;c++){
-        let s=Bs[li][c];
-        for(let k=0;k<TCN_K;k++){
-          const tt = t - k*dil;
-          if (tt<0) continue;                 // 因果：只用过去
-          for(let i=0;i<TCN_CH;i++) s += Ws[li][c][k][i]*h[tt][i];
-        }
-        oc[c]=Math.max(0,s);
-      }
-      out.push(oc);
-    }
-    h = out;
-  }
-  return h;
-}
-function tcnTrain(hist){
-  const data = hist.map(feats49);
-  const ch = TCN_CH;
-  // 输入投影 8×49
-  const P = Array.from({length:ch},()=>Array.from({length:49},()=>randn()*0.15));
-  // 每层卷积核 [out=8][k=3][in=8]
-  const Ws = TCN_DIL.map(() => Array.from({length:ch},()=>Array.from({length:TCN_K},()=>Array.from({length:ch},()=>randn()*0.15))));
-  const Bs = TCN_DIL.map(()=>new Array(ch).fill(0));
-  const flatN = ch * Math.ceil(TCN_T/2);
-  const Wf = Array.from({length:49},()=>Array.from({length:flatN},()=>randn()*0.1));
-  const bf = new Array(49).fill(0);
-  const lr=0.1;
-  const forward=(win)=>{
-    let h = tcnProject(win, P);
-    h = tcnCore(h, Ws, Bs);
-    const pooled=[];
-    for(let t=0;t<h.length;t+=2) for(let c=0;c<ch;c++) pooled.push(h[t][c]);
-    const out49=new Array(49);
-    for(let k=0;k<49;k++){ let s=bf[k]; for(let f=0;f<pooled.length;f++) s+=Wf[k][f]*pooled[f]; out49[k]=sigmoid(s); }
-    return {out49, pooled};
-  };
-  const samples=Math.max(1, data.length-TCN_T);
-  for(let ep=0;ep<TCN_EPOCHS;ep++){
-    for(let s=0;s<samples;s+=2){
-      const win=data.slice(s,s+TCN_T);
-      const y=data[s+TCN_T] || data[s+TCN_T-1];
-      const {out49,pooled}=forward(win);
-      // FC 精确更新（主要信号来源）
-      for(let k=0;k<49;k++){
-        const g=out49[k]-y[k];
-        for(let f=0;f<pooled.length;f++) Wf[k][f]-=lr*clip(g*pooled[f]);
-        bf[k]-=lr*clip(g);
-      }
-      // 卷积核/投影轻量随机更新（正则化方向，成本可控）
-      const li=TCN_DIL.length-1;
-      for(let c=0;c<ch;c++) for(let k=0;k<TCN_K;k++) for(let i=0;i<ch;i+=2){
-        Ws[li][c][k][i] -= lr*(randn()-0.5)*0.05;
-      }
-      for(let c=0;c<ch;c++) for(let i=0;i<49;i+=4){
-        P[c][i] -= lr*(randn()-0.5)*0.03;
-      }
-    }
-  }
-  return {P,Ws,Bs,Wf,bf};
-}
-function tcnFwd(m, hist){
-  const data=hist.slice(-TCN_T).map(feats49);
-  const win=data.length<TCN_T ? [...new Array(TCN_T-data.length).fill(null).map(()=>new Float64Array(49)), ...data] : data;
-  let h = tcnProject(win, m.P);
-  h = tcnCore(h, m.Ws, m.Bs);
-  const pooled=[]; for(let t=0;t<h.length;t+=2) for(let c=0;c<TCN_CH;c++) pooled.push(h[t][c]);
-  const sc=new Array(49);
-  for(let k=0;k<49;k++){ let s=m.bf[k]; for(let f=0;f<pooled.length;f++) s+=m.Wf[k][f]*pooled[f]; sc[k]=sigmoid(s); }
-  return sc;
-}
-
 // ================= 10) CatBoost（对称树 oblivious boosting + 因果目标统计特征） =================
 function catBuildTree(X, g, h, depth, idx){
   // 对称树：每一层所有节点使用同一特征、同一阈值（CatBoost 的 oblivious tree）
@@ -624,11 +538,11 @@ function algoPSO(hist, W=30, NP=24, IT=18){
 //          LSTM/CNN 权重低但保留（深度学习代表，且有"起死回生"机制）。
 // 已删除：DLinear(被N-HiTS取代) / Transformer(停权) / SSA(停权) / 贝叶斯优化(停权) / 模拟退火+蚁群(与PSO/GA同质)
 // 删除理由：停权模型白烧算力不投票；同质模型抄多遍稀释共识——模型越多共识越难达成(12个58.3%→15个46.7%)，影响实际下注。
-const MODEL_KEYS = ['nhits','lstm','tcn','cnn','kalman','lgbm','catboost','ga','pso'];
+const MODEL_KEYS = ['nhits','lstm','cnn','kalman','lgbm','catboost','ga','pso'];
 // 慢模型：预训练一次 + 回测期只前向
-const SLOW_KEYS = ['lstm','tcn','cnn','lgbm','catboost'];
-const SLOW_TRAIN = { lstm: lstmTrain, tcn: tcnTrain, cnn: cnnTrain, lgbm: lgbmTrain, catboost: catTrain };
-const SLOW_FWD   = { lstm: lstmFwd, tcn: tcnFwd, cnn: cnnFwd, lgbm: lgbmFwd, catboost: catFwd };
+const SLOW_KEYS = ['lstm','cnn','lgbm','catboost'];
+const SLOW_TRAIN = { lstm: lstmTrain, cnn: cnnTrain, lgbm: lgbmTrain, catboost: catTrain };
+const SLOW_FWD   = { lstm: lstmFwd, cnn: cnnFwd, lgbm: lgbmFwd, catboost: catFwd };
 // 轻量/优化类：每期直接算（解析计算 + 优化迭代）
 const FAST_FNS = { nhits: algoNHiTS, kalman: algoKalman, ga: algoGA, pso: algoPSO };
 
@@ -706,7 +620,7 @@ function predictAll(hist){
   const raw={};
   for(const n of MODEL_KEYS) raw[n]=modelScore(n, hist, models[n]);
   // 2) Walk-forward 权重
-  const W=walkForwardWeights(hist, 60);
+  const W=walkForwardWeights(hist, 200);   // v8：窗口60→200期，修短视（60期让TCN/LCG这类短期运气模型混上高权重）
   // 3) Ensemble 融合
   const fused=new Float64Array(49);
   let wsum=0;
