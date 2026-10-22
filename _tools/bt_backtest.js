@@ -143,5 +143,6 @@ const summary = {
   m3_switch_total: sw3_total, m3_primary_win: sw3_priWin, m3_bet_win: sw3_betWin,
   elapsed_sec: +((Date.now()-t0)/1000).toFixed(0),
 };
-fs.writeFileSync('E:/六子/_tools/bt_result.json', JSON.stringify(summary,null,2));
+const BT_OUT = process.env.BT_OUT || 'E:/六子/_tools/bt_result.json';
+fs.writeFileSync(BT_OUT, JSON.stringify(summary,null,2));
 console.log('\n结果已写入 bt_result.json，总耗时', summary.elapsed_sec, '秒');
