@@ -20,6 +20,7 @@ jobs:
         env:
           ALGO_PATH: ./algos10.js
           HTML_PATH: ./index.html
+          BT_OUT: ./bt_result.txt
         run: |
           node _tools/bt_backtest.js > backtest_result.txt 2>&1 || true
           echo "=== 回测执行完毕，结果见 artifact ==="
