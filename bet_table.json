@@ -1,55 +1,61 @@
 {
-  "generated_at": "2026-10-21 22:40:49+08:00",
-  "capital_start": 1000,
-  "risk": 7,
-  "kpi": {
-    "trades": 2,
-    "win_rate": 1,
-    "total_pnl": 306,
-    "current": 1306
+ "generated_at": "2026-10-22 22:07:35+08:00",
+ "capital_start": 1000,
+ "risk": 7,
+ "kpi": {
+  "trades": 2,
+  "win_rate": 1.0,
+  "total_pnl": 306,
+  "current": 1306
+ },
+ "rows": [
+  {
+   "period": 2026293,
+   "zodiac": "鸡",
+   "odds": 1,
+   "count": 1,
+   "result": "赢",
+   "unit": 143,
+   "stake": 143,
+   "pnl": 143,
+   "capital": 1143,
+   "bet": "鸡,"
   },
-  "rows": [
-    {
-      "period": 2026293,
-      "zodiac": "鸡",
-      "odds": 1,
-      "count": 1,
-      "result": "赢",
-      "unit": 143,
-      "stake": 143,
-      "pnl": 143,
-      "capital": 1143,
-      "bet": "鸡,",
-      "agree": null,
-      "skipped": false
-    },
-    {
-      "period": 2026294,
-      "zodiac": "蛇",
-      "odds": 1,
-      "count": 1,
-      "result": "赢",
-      "unit": 163,
-      "stake": 163,
-      "pnl": 163,
-      "capital": 1306,
-      "bet": "蛇,",
-      "agree": 0.625,
-      "skipped": false
-    },
-    {
-      "period": 2026295,
-      "zodiac": "",
-      "odds": 1,
-      "count": 1,
-      "result": "未下注(共识不足)",
-      "unit": 0,
-      "stake": 0,
-      "pnl": 0,
-      "capital": 1306,
-      "bet": "",
-      "agree": 0.5,
-      "skipped": true
-    }
-  ]
+  {
+   "period": 2026294,
+   "zodiac": "蛇",
+   "odds": 1,
+   "count": 1,
+   "result": "赢",
+   "unit": 163,
+   "stake": 163,
+   "pnl": 163,
+   "capital": 1306,
+   "bet": "蛇,"
+  },
+  {
+   "period": 2026295,
+   "zodiac": "猫",
+   "odds": null,
+   "count": null,
+   "result": "开奖中",
+   "unit": null,
+   "stake": null,
+   "pnl": null,
+   "capital": null,
+   "bet": ""
+  },
+  {
+   "period": 2026296,
+   "zodiac": "",
+   "odds": null,
+   "count": null,
+   "result": "开奖中",
+   "unit": null,
+   "stake": null,
+   "pnl": null,
+   "capital": null,
+   "bet": ""
+  }
+ ]
 }
