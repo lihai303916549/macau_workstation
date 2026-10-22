@@ -210,7 +210,7 @@ h1 {
       <div class="stats-row" id="bet-kpi" style="margin-bottom:12px;">加载中...</div>
       <div style="max-height:420px; overflow:auto; border:1px solid var(--border); border-radius:6px;">
         <table class="backtest-table bet-table" style="min-width:760px;">
-          <thead><tr><th>期数</th><th>生肖</th><th>赔率</th><th>押肖数</th><th>赢亏</th><th>单价投注额</th><th>盈亏</th><th>累计本金</th><th>下注</th><th>共识度</th><th>隐藏</th></tr></thead>
+          <thead><tr><th>期数</th><th>生肖</th><th>赔率</th><th>押肖数</th><th>赢亏</th><th>单价投注额</th><th>盈亏</th><th>累计本金</th><th>下注</th><th>隐藏</th></tr></thead>
           <tbody id="bet-body"></tbody>
         </table>
       </div>
@@ -1689,7 +1689,8 @@ const EMBEDDED_DATA = [
 ["2026291","2026-10-18","32,10,41,38,22,02,17"],
 ["2026292","2026-10-19","39,10,18,23,16,04,36"],
 ["2026293","2026-10-20","38,10,48,49,13,09,05"],
-["2026294","2026-10-21","29,43,10,02,34,27,28"]
+["2026294","2026-10-21","29,43,10,02,34,27,28"],
+["2026295","2026-10-22","22,28,33,17,13,47,25"]
 ];
 
 
@@ -1793,7 +1794,8 @@ function getNextPeriod(data) {
 
 const EMBEDDED_RECORDS = [
   {"period":"2026293","actual_numbers":[38,10,48,49,13,9],"actual_special":5,"pred_zodiac":"鸡","pred_top3":["鸡","虎","马"],"pred_six":["鸡","虎","马","兔","鼠","蛇"],"pred_codes":[3,4,5,6,10,12,13,14,17,20,21,22,25,26,29,30,31,34,40,41,46,47,49],"code_hit":1,"zodiac_hit":1,"six_hit":1},
-  {"period":"2026294","actual_numbers":[29,43,10,2,34,27],"actual_special":28,"pred_zodiac":"蛇","pred_top3":["蛇","鼠","马"],"pred_six":["蛇","鼠","马","牛","虎","猪"],"pred_codes":[1,2,5,6,7,8,14,17,19,20,21,22,23,24,25,32,36,38,40,46,47,48,49],"code_hit":0,"zodiac_hit":1,"six_hit":0}
+  {"period":"2026294","actual_numbers":[29,43,10,2,34,27],"actual_special":28,"pred_zodiac":"蛇","pred_top3":["蛇","鼠","马"],"pred_six":["蛇","鼠","马","牛","虎","猪"],"pred_codes":[1,2,5,6,7,8,14,17,19,20,21,22,23,24,25,32,36,38,40,46,47,48,49],"code_hit":0,"zodiac_hit":1,"six_hit":0},
+  {"period":"2026295","actual_numbers":[22,28,33,17,13,47],"actual_special":25,"pred_zodiac":"兔","pred_top3":["兔","鸡","猴"],"pred_six":["兔","鸡","猴","蛇","虎","马"],"pred_codes":[1,2,5,6,7,8,19,21,22,23,24,25,26,28,29,32,36,38,39,40,43,46,47],"code_hit":1,"zodiac_hit":1,"six_hit":1}
 ];
 
 // 战绩有两份数据源（record.json 与 EMBEDDED_RECORDS），校验是否同步，避免只改一处
@@ -1874,20 +1876,6 @@ function renderAlgoNote(pred, targetId) {
           '平特肖=生肖聚合最高、6肖=生肖聚合前6（生肖聚合已除以各生肖号数消除偏置）。' +
           '随机基准：平特肖纯随机理论值 1-(11/12)^7 ≈ 46.3%，6肖 ≈ 50%，23码 ≈ 47%（23/49）——' +
           '各模型回测命中需高于此线才算真信号。事前预测存档制，只做事前不事后重算。</div>';
-  // 共识投票层
-  const cons = pred.consensus;
-  if (cons) {
-    const agreePct = (cons.agree * 100).toFixed(1);
-    const isSkip = cons.action === 'skip';
-    html += '<div class="algo-note-sub" style="margin-top:6px;">🗳 <b>共识投票</b>：' + keys.length + ' 个模型主推生肖投票，' +
-            '一致度 <b style="color:' + (isSkip ? 'var(--red)' : 'var(--green)') + '">' + agreePct + '%</b>' +
-            '（' + (cons.count || 0) + '/' + (cons.total || keys.length) + ' 票推 ' + (cons.top || '—') + '，阈值 60%）；' +
-            (isSkip ? '<b style="color:var(--red)">分歧过大 → 本期不押注（保护本金）</b>' : '分歧可控 → 正常下注') + '</div>';
-    const vt = Object.entries(cons.votes || {}).sort((a,b)=>b[1]-a[1])
-      .map(([z,c]) => z + '×' + c).join(' · ');
-    html += '<div class="algo-note-sub2">投票明细：' + vt +
-            '　（投票=各模型【独立】意见的分散度检验；实际押注以【加权融合主推】为准，融合已按各模型回测表现加权）</div>';
-  }
   html += '</div>';
   el.innerHTML = html;
 }
@@ -2143,10 +2131,6 @@ async function loadBetTable() {
     const rc = x.result === '赢' ? 'var(--green)' : x.result === '亏' ? 'var(--red)' : 'var(--text-muted)';
     const pc = (typeof x.pnl === 'number') ? (x.pnl >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text-muted)';
     const zc = x.zodiac === '猫' ? 'var(--red)' : 'var(--text)';
-    // 共识度列：v6 新增（一致度% + 跳过标记）
-    const agreeTxt = (x.agree === null || x.agree === undefined) ? '—' : (x.agree * 100).toFixed(0) + '%';
-    const agreeColor = x.skipped ? 'var(--red)' : (x.agree === null || x.agree === undefined) ? 'var(--text-muted)' : (x.agree >= 0.6 ? 'var(--green)' : 'var(--red)');
-    const agreeCell = '<td style="color:' + agreeColor + ';" title="' + (x.skipped ? '共识不足，本期未下注' : '模型主推一致度（阈值60%）') + '">' + agreeTxt + (x.skipped ? ' 跳过' : '') + '</td>';
     return '<tr data-period="' + x.period + '"><td>' + x.period + '</td>' +
       '<td style="color:' + zc + '">' + (x.zodiac || '—') + '</td>' +
       '<td>' + (x.odds === null || x.odds === undefined ? '—' : Number(x.odds).toFixed(1)) + '</td>' +
@@ -2156,7 +2140,6 @@ async function loadBetTable() {
       '<td style="color:' + pc + '">' + (typeof x.pnl === 'number' ? (x.pnl >= 0 ? '+' : '') + x.pnl.toLocaleString('zh-CN') : x.pnl) + '</td>' +
       '<td style="font-weight:600;">' + fmtBetNum(x.capital) + '</td>' +
       '<td>' + (x.bet || '—') + '</td>' +
-      agreeCell +
       '<td><button type="button" class="hide-btn" title="隐藏本期" onclick="hideRowBtn(\'' + HIDE_KEY_BET + '\',' + x.period + ',this)">隐藏</button></td></tr>';
   }).join('');
   applyHiddenRows(HIDE_KEY_BET, body);
