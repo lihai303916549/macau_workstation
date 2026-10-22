@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-22 22:07:35+08:00",
+ "generated_at": "2026-10-22 22:39:28+08:00",
  "capital_start": 1000,
  "risk": 7,
  "kpi": {
@@ -48,14 +48,14 @@
   {
    "period": 2026296,
    "zodiac": "",
-   "odds": null,
-   "count": null,
+   "odds": 1,
+   "count": 1,
    "result": "开奖中",
-   "unit": null,
-   "stake": null,
-   "pnl": null,
-   "capital": null,
-   "bet": ""
+   "unit": 143,
+   "stake": 143,
+   "pnl": "?",
+   "capital": 1000,
+   "bet": "虎,"
   }
  ]
 }
