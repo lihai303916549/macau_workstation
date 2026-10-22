@@ -1895,6 +1895,11 @@ function renderComposite(pred, nextPeriod) {
   const probs = pred.probs || {};
   const top1 = top3[0] || pred.zodiac;
   let html = '<div style="font-size:22px;color:var(--green);font-weight:600;margin-bottom:6px;">融合主推 ' + top1 + '（' + numsByZ[top1].length + '个号）</div>';
+  // v8.2 防连押顺延提示：实际下注生肖若因连押被顺延，红字标出（与融合主推区分）
+  const betZ = pred.bet_zodiac;
+  if (betZ && betZ !== top1) {
+    html += '<div style="font-size:13px;color:var(--red);font-weight:600;margin:2px 0 4px;">↪ 防连押顺延：本期实际下注 <b>' + betZ + '</b>（' + numsByZ[betZ].length + '个号）— 融合主推「' + top1 + '」已连续3期，第4期强制换</div>';
+  }
   html += '<div style="font-size:12px;color:var(--text);opacity:.85;line-height:1.95;">';
   top3.forEach((z, i) => {
     const p = (probs[z] || 0) * 100;
