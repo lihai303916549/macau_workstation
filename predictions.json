@@ -194,21 +194,6 @@
       47,
       49
     ],
-    "consensus": {
-      "agree": 0.5,
-      "votes": {
-        "鸡": 2,
-        "虎": 4,
-        "蛇": 1,
-        "龙": 1
-      },
-      "top": "虎",
-      "count": 4,
-      "total": 8,
-      "action": "skip",
-      "threshold": 0.6
-    },
-    "skipped": true,
     "saved_at": "2026-10-22"
   }
 }
