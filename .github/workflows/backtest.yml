@@ -1,0 +1,32 @@
+name: 六子回测
+
+on:
+  workflow_dispatch:
+    inputs:
+      window:
+        description: '回测窗口期数（不填默认脚本内置值）'
+        required: false
+        default: ''
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: 跑回测 (Node)
+        env:
+          ALGO_PATH: ./algos10.js
+          HTML_PATH: ./index.html
+        run: |
+          node _tools/bt_backtest.js > backtest_result.txt 2>&1 || true
+          echo "=== 回测执行完毕，结果见 artifact ==="
+          tail -n 30 backtest_result.txt
+      - name: 上传回测结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backtest-result
+          path: backtest_result.txt
