@@ -16,7 +16,6 @@
  *   1) Ensemble 动态融合 —— 8模型归一化后按 Walk-forward 超额权重加权融合
  *   2) Walk-forward 优化 —— 近200期影子回测（v8：60→200期，修短视）
  *   3) 多属性命中判定    —— judgeDraw：23码/平特肖/6肖三层判定
- *   4) 共识投票层       —— 8模型主推生肖投票；一致度≥60% 正常下注，分歧大则【跳过不下注】
  *
  * ⚠️ v8 变更（基于300期正式回测，2025-359~2026-293，显著性检验）：
  *   ① 删除 TCN：300期平特肖命中率仅 32.3%（随机基线46.3%，p<0.001 显著反向），
@@ -596,21 +595,6 @@ function walkForwardWeights(hist, w=60){
   return W;
 }
 
-// ================= 共识投票层 =================
-// 12模型主推生肖投票：一致度≥阈值 → 正常下注；分歧大 → 跳过不下注（保护本金）
-const CONSENSUS_THRESHOLD = 0.6;
-function consensusOf(details){
-  const votes={};
-  const keys=Object.keys(details);
-  for(const k of keys){ const z=details[k].zodiac; votes[z]=(votes[z]||0)+1; }
-  const total=keys.length;
-  const sorted=Object.entries(votes).sort((a,b)=>b[1]-a[1]);
-  const top = sorted[0] || [null,0];
-  const agree = total ? top[1]/total : 0;
-  const action = agree >= CONSENSUS_THRESHOLD ? 'full' : 'skip';
-  return { agree, votes, top: top[0], count: top[1], total, action, threshold: CONSENSUS_THRESHOLD };
-}
-
 // ================= Ensemble 主入口 =================
 function predictAll(hist){
   rngReset(20261019);
@@ -630,25 +614,70 @@ function predictAll(hist){
     wsum+=W[k];
   }
   for(let n=0;n<49;n++) fused[n]/=(wsum||1);
-  // 4) 明细 + 共识投票
-  const details={};
-  for(const k of MODEL_KEYS) details[k]=derive(normalize(raw[k]));
-  const consensus = consensusOf(details);
-  // 4.5) 融合后的12生肖分数全景（网页展示：让"为什么是这个生肖"看得见）
+  // 4) 融合后的12生肖分数全景（网页展示：让"为什么是这个生肖"看得见）
   const zodiacScores = [];
   for(let z=0;z<12;z++) zodiacScores.push(0);
   const cnt = new Array(12).fill(0);
   for(let n=1;n<=49;n++){ const z=zOf(n); zodiacScores[z]+=fused[n-1]; cnt[z]++; }
   for(let z=0;z<12;z++) zodiacScores[z]/=(cnt[z]||1);
-  return { fused: derive(fused), details, weights: W, consensus, zodiacScores };
+  return { fused: derive(fused), weights: W, zodiacScores };
 }
 
 // ================= 多属性命中判定 =================
 function judgeDraw(pred, draw){
   const codeHit = pred.codes ? ((pred.codes.includes(draw.special))?1:0) : null;
-  const zodiacHit = ([...draw.numbers, draw.special].some(n=>zOf(n)===ZI[pred.zodiac]))?1:0;
+  const betZ = pred.bet_zodiac || pred.zodiac;   // v8.2：判定用实际下注生肖（防连押顺延后），老数据无则回退融合主推
+  const zodiacHit = ([...draw.numbers, draw.special].some(n=>zOf(n)===ZI[betZ]))?1:0;
   const sixHit = pred.six ? ((pred.six.some(z=>z===ZODIACS[zOf(draw.special)]))?1:0) : null;
   return { codeHit, zodiacHit, sixHit };
 }
 
-module.exports = { predictAll, derive, judgeDraw, zOf, ZODIACS, MODEL_KEYS, consensusOf, CONSENSUS_THRESHOLD };
+// ================= 平特肖「防连押」后处理 =================
+// 用户2026-10-22要求：避免融合主推连续多期推荐同一生肖（最多连3期，第4期顺延次高）
+// 仅作用于平特肖【下注决策层】，不改融合主推本身（融合主推仍如实存档/展示）
+// 关键：判定(judgeDraw)与下注(gen_bet_table)均使用 bet_zodiac（实际下注），保证事前预测制一致
+const ANTI_STREAK_MAX = 99;  // 防连押已停用(用户2026-10-23决定"直接去掉")：99=永不触发，平特肖只信融合主推；改回 3 即恢复
+
+// 从 predictions 存档提取「实际下注生肖」序列（带期号，排除未下注：猫/空）
+// 返回 [[period, zodiac], ...]（按期号升序）；老数据无 bet_zodiac 用 zodiac 兜底
+function betStreakFromArchive(predArchive) {
+  const seq = [];
+  const keys = Object.keys(predArchive || {}).sort();
+  for (const k of keys) {
+    const v = predArchive[k];
+    if (!v) continue;
+    const bet = v.bet_zodiac || v.zodiac;
+    if (!bet || bet === '猫') continue;   // 未下注期不计入连续序列
+    seq.push([k, bet]);
+  }
+  return seq;
+}
+
+// 给定融合12生肖分数 + 近期实际下注序列，返回【本期实际下注生肖】
+// recentBetZodiacs：[[period, zodiac], ...]（升序，且不含本期自身）
+function antiStreakBet(zodiacScores, recentBetZodiacs, maxConsec) {
+  maxConsec = (maxConsec == null) ? ANTI_STREAK_MAX : maxConsec;
+  const Z = ZODIACS;
+  // 融合主推（分数最高）
+  let bestI = 0;
+  for (let i = 1; i < 12; i++) if (zodiacScores[i] > zodiacScores[bestI]) bestI = i;
+  const primary = Z[bestI];
+  // 兼容两种输入：[[期号,生肖],...] 二元组 或 [生肖,...] 字符串数组
+  const seq = (recentBetZodiacs || []).map(x => (Array.isArray(x) ? x[1] : x));
+  // 末尾连续计数
+  function trailing(z) {
+    let c = 0;
+    for (let k = seq.length - 1; k >= 0; k--) { if (seq[k] === z) c++; else break; }
+    return c;
+  }
+  if (trailing(primary) >= maxConsec) {
+    // 触发顺延：12生肖降序，取第一个不破坏连续约束的生肖（自然顺延到次高）
+    const order = Z.map((z, i) => [i, zodiacScores[i]]).sort((a, b) => b[1] - a[1]);
+    for (const [i] of order) {
+      if (trailing(Z[i]) < maxConsec) return Z[i];
+    }
+  }
+  return primary;
+}
+
+module.exports = { predictAll, derive, judgeDraw, zOf, ZODIACS, MODEL_KEYS, antiStreakBet, betStreakFromArchive, ANTI_STREAK_MAX };
