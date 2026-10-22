@@ -59,7 +59,7 @@ globalThis.__predictCached = function(hist, slow, wf){
 
 const trainCp = ctx.__trainCheckpoint;
 const predictCp = ctx.__predictCached;
-const antiStreakBet = ctx.antiStreakBet;
+const antiStreakBet = (ctx.module && ctx.module.exports && ctx.module.exports.antiStreakBet) || ctx.antiStreakBet;
 
 const startIdx = L - WINDOW;
 const endIdx = L;
