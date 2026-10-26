@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-26 01:12:10+08:00",
+  "generated_at": "2026-10-27 03:31:04+08:00",
   "capital_start": 1000,
   "risk": 7,
   "kpi": {
-    "trades": 4,
-    "win_rate": 0.5,
-    "total_pnl": -41,
-    "current": 959
+    "trades": 5,
+    "win_rate": 0.4,
+    "total_pnl": -178,
+    "current": 822
   },
   "rows": [
     {
@@ -95,15 +95,29 @@
     },
     {
       "period": 2026299,
+      "zodiac": "猫",
+      "odds": 1,
+      "count": 1,
+      "result": "亏",
+      "unit": 137,
+      "stake": 137,
+      "pnl": -137,
+      "capital": 822,
+      "bet": "蛇,",
+      "agree": null,
+      "skipped": false
+    },
+    {
+      "period": 2026300,
       "zodiac": "",
       "odds": 1,
       "count": 1,
       "result": "开奖中",
-      "unit": 137,
-      "stake": 137,
+      "unit": 117,
+      "stake": 117,
       "pnl": "?",
-      "capital": 959,
-      "bet": "蛇,",
+      "capital": 822,
+      "bet": "虎,",
       "agree": null,
       "skipped": false
     }
