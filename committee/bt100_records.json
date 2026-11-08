@@ -1,0 +1,2286 @@
+{
+  "records": {
+    "2026311": {
+      "predictFor": "2026311",
+      "sourcePeriod": "2026310",
+      "generated": "2026-11-07T14:00:05.296Z",
+      "consensus": [
+        {
+          "zodiac": "马",
+          "votes": 67
+        },
+        {
+          "zodiac": "虎",
+          "votes": 13
+        },
+        {
+          "zodiac": "龙",
+          "votes": 4
+        },
+        {
+          "zodiac": "鸡",
+          "votes": 4
+        },
+        {
+          "zodiac": "蛇",
+          "votes": 3
+        },
+        {
+          "zodiac": "兔",
+          "votes": 2
+        },
+        {
+          "zodiac": "牛",
+          "votes": 2
+        },
+        {
+          "zodiac": "鼠",
+          "votes": 2
+        },
+        {
+          "zodiac": "狗",
+          "votes": 2
+        },
+        {
+          "zodiac": "猴",
+          "votes": 2
+        },
+        {
+          "zodiac": "羊",
+          "votes": 1
+        },
+        {
+          "zodiac": "猪",
+          "votes": 0
+        }
+      ],
+      "picks": [
+        {
+          "id": "L1-01",
+          "name": "Transformer(LCG未见模数)",
+          "layer": "L1",
+          "zodiac": "鼠",
+          "score": 0.5523
+        },
+        {
+          "id": "L1-02",
+          "name": "Transformer(PCG)",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.5744
+        },
+        {
+          "id": "L1-03",
+          "name": "Transformer(LCG m=2^32)",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.5709
+        },
+        {
+          "id": "L1-04",
+          "name": "Transformer(深度临界d=3)",
+          "layer": "L1",
+          "zodiac": "兔",
+          "score": 0.5991
+        },
+        {
+          "id": "L1-05",
+          "name": "LSTM+BLSTM(LFSR/LCG)",
+          "layer": "L1",
+          "zodiac": "虎",
+          "score": 0.587
+        },
+        {
+          "id": "L1-06",
+          "name": "FFT-ATT-LSTM",
+          "layer": "L1",
+          "zodiac": "猴",
+          "score": 0.8333
+        },
+        {
+          "id": "L1-07",
+          "name": "LSTM(纯序列下一比特)",
+          "layer": "L1",
+          "zodiac": "鼠",
+          "score": 0.5581
+        },
+        {
+          "id": "L1-08",
+          "name": "FNN(前馈下一比特)",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.6138
+        },
+        {
+          "id": "L1-09",
+          "name": "TCN(下一比特)",
+          "layer": "L1",
+          "zodiac": "龙",
+          "score": 0.5806
+        },
+        {
+          "id": "L1-10",
+          "name": "Transformer(短窗口基线)",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.6066
+        },
+        {
+          "id": "L1-11",
+          "name": "LSTM(短/中程>99%)",
+          "layer": "L1",
+          "zodiac": "虎",
+          "score": 0.7084
+        },
+        {
+          "id": "L1-12",
+          "name": "Transformer(长程Rule90/62)",
+          "layer": "L1",
+          "zodiac": "牛",
+          "score": 0.5844
+        },
+        {
+          "id": "L1-13",
+          "name": "BiLSTM-Transformer-GAN预测器",
+          "layer": "L1",
+          "zodiac": "鸡",
+          "score": 0.7189
+        },
+        {
+          "id": "L1-14",
+          "name": "CNN-LSTM",
+          "layer": "L1",
+          "zodiac": "鸡",
+          "score": 0.7191
+        },
+        {
+          "id": "L1-15",
+          "name": "LSTM-CNN",
+          "layer": "L1",
+          "zodiac": "龙",
+          "score": 0.8038
+        },
+        {
+          "id": "L1-16",
+          "name": "CNN+LSTM并联",
+          "layer": "L1",
+          "zodiac": "狗",
+          "score": 0.7351
+        },
+        {
+          "id": "L1-17",
+          "name": "Parallel CNN-BiLSTM+Transformer",
+          "layer": "L1",
+          "zodiac": "蛇",
+          "score": 0.7018
+        },
+        {
+          "id": "L1-18",
+          "name": "TCN-LSTM",
+          "layer": "L1",
+          "zodiac": "虎",
+          "score": 0.7058
+        },
+        {
+          "id": "L1-19",
+          "name": "CNN-LSTM-attention",
+          "layer": "L1",
+          "zodiac": "狗",
+          "score": 0.7643
+        },
+        {
+          "id": "L1-20",
+          "name": "TCN-LSTM-attention",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.7372
+        },
+        {
+          "id": "L1-21",
+          "name": "GRU",
+          "layer": "L1",
+          "zodiac": "龙",
+          "score": 0.584
+        },
+        {
+          "id": "L1-22",
+          "name": "BiGRU",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.5764
+        },
+        {
+          "id": "L1-23",
+          "name": "BiLSTM",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.6171
+        },
+        {
+          "id": "L1-24",
+          "name": "深度前馈(ANN LCG回归)",
+          "layer": "L1",
+          "zodiac": "虎",
+          "score": 0.6117
+        },
+        {
+          "id": "L1-25",
+          "name": "ANN(RANDU回归)",
+          "layer": "L1",
+          "zodiac": "牛",
+          "score": 0.6032
+        },
+        {
+          "id": "L1-26",
+          "name": "ANN(ZX81 LCG回归)",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.6073
+        },
+        {
+          "id": "L1-27",
+          "name": "Transformer-BiLSTM-cGAN",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.6743
+        },
+        {
+          "id": "L1-28",
+          "name": "Mamba/SSM",
+          "layer": "L1",
+          "zodiac": "猴",
+          "score": 0.5988
+        },
+        {
+          "id": "L1-29",
+          "name": "Perceiver/Perceiver IO",
+          "layer": "L1",
+          "zodiac": "鸡",
+          "score": 0.5562
+        },
+        {
+          "id": "L1-30",
+          "name": "N-BEATS",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.569
+        },
+        {
+          "id": "L1-31",
+          "name": "N-HiTS",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.5693
+        },
+        {
+          "id": "L1-32",
+          "name": "TimesNet",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.6583
+        },
+        {
+          "id": "L1-33",
+          "name": "PatchTST",
+          "layer": "L1",
+          "zodiac": "龙",
+          "score": 0.613
+        },
+        {
+          "id": "L1-34",
+          "name": "Crossformer",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.6119
+        },
+        {
+          "id": "L1-35",
+          "name": "iTransformer",
+          "layer": "L1",
+          "zodiac": "鸡",
+          "score": 0.7061
+        },
+        {
+          "id": "L1-36",
+          "name": "DLinear",
+          "layer": "L1",
+          "zodiac": "虎",
+          "score": 0.706
+        },
+        {
+          "id": "L1-37",
+          "name": "TiDE",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.584
+        },
+        {
+          "id": "L1-38",
+          "name": "TFT",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.6104
+        },
+        {
+          "id": "L1-39",
+          "name": "Chronos(预训练时序LM)",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 1
+        },
+        {
+          "id": "L1-40",
+          "name": "TimeGPT/时序基础模型",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 1
+        },
+        {
+          "id": "L2-41",
+          "name": "AR(p)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6007
+        },
+        {
+          "id": "L2-42",
+          "name": "MA(q)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6007
+        },
+        {
+          "id": "L2-43",
+          "name": "ARMA(p,q)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6007
+        },
+        {
+          "id": "L2-44",
+          "name": "ARIMA(p,d,q)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": null
+        },
+        {
+          "id": "L2-45",
+          "name": "SARIMA",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": null
+        },
+        {
+          "id": "L2-46",
+          "name": "SARIMAX",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": null
+        },
+        {
+          "id": "L2-47",
+          "name": "ARFIMA",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6134
+        },
+        {
+          "id": "L2-48",
+          "name": "指数平滑",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9775
+        },
+        {
+          "id": "L2-49",
+          "name": "Holt线性趋势",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9775
+        },
+        {
+          "id": "L2-50",
+          "name": "Holt-Winters",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9775
+        },
+        {
+          "id": "L2-51",
+          "name": "ETS状态空间",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9775
+        },
+        {
+          "id": "L2-52",
+          "name": "Theta方法",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9775
+        },
+        {
+          "id": "L2-53",
+          "name": "TBATS",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9775
+        },
+        {
+          "id": "L2-54",
+          "name": "Kalman局部水平/趋势",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9931
+        },
+        {
+          "id": "L2-55",
+          "name": "Kalman-ARIMA混合",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9931
+        },
+        {
+          "id": "L2-56",
+          "name": "GARCH(p,q)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5741
+        },
+        {
+          "id": "L2-57",
+          "name": "EGARCH",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5741
+        },
+        {
+          "id": "L2-58",
+          "name": "GJR-GARCH",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5741
+        },
+        {
+          "id": "L2-59",
+          "name": "GARCH-M",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5741
+        },
+        {
+          "id": "L2-60",
+          "name": "ARCH(q)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5741
+        },
+        {
+          "id": "L2-61",
+          "name": "马尔可夫链(一阶)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.553
+        },
+        {
+          "id": "L2-62",
+          "name": "高阶马尔可夫",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5597
+        },
+        {
+          "id": "L2-63",
+          "name": "隐马尔可夫HMM",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.3668
+        },
+        {
+          "id": "L2-64",
+          "name": "马尔可夫-switching AR",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6007
+        },
+        {
+          "id": "L2-65",
+          "name": "泊松自回归PAR",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6007
+        },
+        {
+          "id": "L2-66",
+          "name": "INAR",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6007
+        },
+        {
+          "id": "L2-67",
+          "name": "二项AR(1)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5535
+        },
+        {
+          "id": "L2-68",
+          "name": "二项MA(q)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5808
+        },
+        {
+          "id": "L2-69",
+          "name": "二项ARMA",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6007
+        },
+        {
+          "id": "L2-70",
+          "name": "随机系数AR",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6007
+        },
+        {
+          "id": "L2-71",
+          "name": "分数高斯噪声fGn",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6134
+        },
+        {
+          "id": "L2-72",
+          "name": "灰色GM(1,1)",
+          "layer": "L2",
+          "zodiac": "蛇",
+          "score": 1
+        },
+        {
+          "id": "L2-73",
+          "name": "灰色Verhulst",
+          "layer": "L2",
+          "zodiac": "蛇",
+          "score": 1
+        },
+        {
+          "id": "L2-74",
+          "name": "ACD",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9852
+        },
+        {
+          "id": "L2-75",
+          "name": "Hawkes过程",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9852
+        },
+        {
+          "id": "L3-76",
+          "name": "线性回归",
+          "layer": "L3",
+          "zodiac": "虎",
+          "score": 0.7061
+        },
+        {
+          "id": "L3-77",
+          "name": "岭回归Ridge",
+          "layer": "L3",
+          "zodiac": "虎",
+          "score": 0.706
+        },
+        {
+          "id": "L3-78",
+          "name": "LASSO",
+          "layer": "L3",
+          "zodiac": "虎",
+          "score": 0.7058
+        },
+        {
+          "id": "L3-79",
+          "name": "Elastic Net",
+          "layer": "L3",
+          "zodiac": "虎",
+          "score": 0.7059
+        },
+        {
+          "id": "L3-80",
+          "name": "决策树回归",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.6484
+        },
+        {
+          "id": "L3-81",
+          "name": "决策树分类",
+          "layer": "L3",
+          "zodiac": "兔",
+          "score": 0.587
+        },
+        {
+          "id": "L3-82",
+          "name": "随机森林回归",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5547
+        },
+        {
+          "id": "L3-83",
+          "name": "随机森林分类",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5806
+        },
+        {
+          "id": "L3-84",
+          "name": "梯度提升GBM",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5441
+        },
+        {
+          "id": "L3-85",
+          "name": "XGBoost",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5385
+        },
+        {
+          "id": "L3-86",
+          "name": "LightGBM",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5371
+        },
+        {
+          "id": "L3-87",
+          "name": "CatBoost",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5233
+        },
+        {
+          "id": "L3-88",
+          "name": "SVR(RBF核)",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5556
+        },
+        {
+          "id": "L3-89",
+          "name": "SVM分类",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5556
+        },
+        {
+          "id": "L3-90",
+          "name": "高斯过程回归GPR",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5556
+        },
+        {
+          "id": "L3-91",
+          "name": "GPR+SVR混合",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5556
+        },
+        {
+          "id": "L3-92",
+          "name": "KNN回归",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.625
+        },
+        {
+          "id": "L3-93",
+          "name": "KNN分类",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.625
+        },
+        {
+          "id": "L3-94",
+          "name": "朴素贝叶斯NB",
+          "layer": "L3",
+          "zodiac": "虎",
+          "score": 0.9904
+        },
+        {
+          "id": "L3-95",
+          "name": "逻辑回归",
+          "layer": "L3",
+          "zodiac": "虎",
+          "score": 0.9904
+        },
+        {
+          "id": "L3-96",
+          "name": "线性判别LDA",
+          "layer": "L3",
+          "zodiac": "虎",
+          "score": 0.7061
+        },
+        {
+          "id": "L3-97",
+          "name": "偏最小二乘PLS",
+          "layer": "L3",
+          "zodiac": "虎",
+          "score": 0.7059
+        },
+        {
+          "id": "L4-98",
+          "name": "ESN储备池",
+          "layer": "L4",
+          "zodiac": "羊",
+          "score": 0.5254
+        },
+        {
+          "id": "L4-99",
+          "name": "小波-ESN(WESN)",
+          "layer": "L4",
+          "zodiac": "马",
+          "score": 0.5789
+        },
+        {
+          "id": "L4-100",
+          "name": "RFCM储备池",
+          "layer": "L4",
+          "zodiac": "马",
+          "score": 0.5981
+        },
+        {
+          "id": "L4-101",
+          "name": "Logistic映射外推",
+          "layer": "L4",
+          "zodiac": "马",
+          "score": 0.5808
+        },
+        {
+          "id": "L4-102",
+          "name": "Tent映射外推",
+          "layer": "L4",
+          "zodiac": "马",
+          "score": 0.5808
+        }
+      ],
+      "openZodiacs": [
+        "猪",
+        "兔",
+        "马",
+        "蛇",
+        "鼠",
+        "鸡"
+      ],
+      "judged": true,
+      "modelHits": {
+        "L1-01": true,
+        "L1-02": true,
+        "L1-03": true,
+        "L1-04": true,
+        "L1-05": false,
+        "L1-06": false,
+        "L1-07": true,
+        "L1-08": true,
+        "L1-09": false,
+        "L1-10": true,
+        "L1-11": false,
+        "L1-12": false,
+        "L1-13": true,
+        "L1-14": true,
+        "L1-15": false,
+        "L1-16": false,
+        "L1-17": true,
+        "L1-18": false,
+        "L1-19": false,
+        "L1-20": true,
+        "L1-21": false,
+        "L1-22": true,
+        "L1-23": true,
+        "L1-24": false,
+        "L1-25": false,
+        "L1-26": true,
+        "L1-27": true,
+        "L1-28": false,
+        "L1-29": true,
+        "L1-30": true,
+        "L1-31": true,
+        "L1-32": true,
+        "L1-33": false,
+        "L1-34": true,
+        "L1-35": true,
+        "L1-36": false,
+        "L1-37": true,
+        "L1-38": true,
+        "L1-39": true,
+        "L1-40": true,
+        "L2-41": true,
+        "L2-42": true,
+        "L2-43": true,
+        "L2-44": true,
+        "L2-45": true,
+        "L2-46": true,
+        "L2-47": true,
+        "L2-48": true,
+        "L2-49": true,
+        "L2-50": true,
+        "L2-51": true,
+        "L2-52": true,
+        "L2-53": true,
+        "L2-54": true,
+        "L2-55": true,
+        "L2-56": true,
+        "L2-57": true,
+        "L2-58": true,
+        "L2-59": true,
+        "L2-60": true,
+        "L2-61": true,
+        "L2-62": true,
+        "L2-63": true,
+        "L2-64": true,
+        "L2-65": true,
+        "L2-66": true,
+        "L2-67": true,
+        "L2-68": true,
+        "L2-69": true,
+        "L2-70": true,
+        "L2-71": true,
+        "L2-72": true,
+        "L2-73": true,
+        "L2-74": true,
+        "L2-75": true,
+        "L3-76": false,
+        "L3-77": false,
+        "L3-78": false,
+        "L3-79": false,
+        "L3-80": true,
+        "L3-81": true,
+        "L3-82": true,
+        "L3-83": true,
+        "L3-84": true,
+        "L3-85": true,
+        "L3-86": true,
+        "L3-87": true,
+        "L3-88": true,
+        "L3-89": true,
+        "L3-90": true,
+        "L3-91": true,
+        "L3-92": true,
+        "L3-93": true,
+        "L3-94": false,
+        "L3-95": false,
+        "L3-96": false,
+        "L3-97": false,
+        "L4-98": false,
+        "L4-99": true,
+        "L4-100": true,
+        "L4-101": true,
+        "L4-102": true
+      },
+      "consensusHit": true
+    },
+    "2026312": {
+      "predictFor": "2026312",
+      "sourcePeriod": "2026311",
+      "generated": "2026-11-08T04:28:08.040Z",
+      "consensus": [
+        {
+          "zodiac": "马",
+          "votes": 58
+        },
+        {
+          "zodiac": "牛",
+          "votes": 17
+        },
+        {
+          "zodiac": "鼠",
+          "votes": 5
+        },
+        {
+          "zodiac": "龙",
+          "votes": 4
+        },
+        {
+          "zodiac": "猪",
+          "votes": 4
+        },
+        {
+          "zodiac": "猴",
+          "votes": 4
+        },
+        {
+          "zodiac": "蛇",
+          "votes": 3
+        },
+        {
+          "zodiac": "兔",
+          "votes": 2
+        },
+        {
+          "zodiac": "鸡",
+          "votes": 2
+        },
+        {
+          "zodiac": "羊",
+          "votes": 2
+        },
+        {
+          "zodiac": "狗",
+          "votes": 1
+        },
+        {
+          "zodiac": "虎",
+          "votes": 0
+        }
+      ],
+      "picks": [
+        {
+          "id": "L1-01",
+          "name": "Transformer(LCG未见模数)",
+          "layer": "L1",
+          "zodiac": "猴",
+          "score": 0.5796
+        },
+        {
+          "id": "L1-02",
+          "name": "Transformer(PCG)",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.624
+        },
+        {
+          "id": "L1-03",
+          "name": "Transformer(LCG m=2^32)",
+          "layer": "L1",
+          "zodiac": "牛",
+          "score": 0.5688
+        },
+        {
+          "id": "L1-04",
+          "name": "Transformer(深度临界d=3)",
+          "layer": "L1",
+          "zodiac": "牛",
+          "score": 0.6192
+        },
+        {
+          "id": "L1-05",
+          "name": "LSTM+BLSTM(LFSR/LCG)",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.5985
+        },
+        {
+          "id": "L1-06",
+          "name": "FFT-ATT-LSTM",
+          "layer": "L1",
+          "zodiac": "羊",
+          "score": 0.6542
+        },
+        {
+          "id": "L1-07",
+          "name": "LSTM(纯序列下一比特)",
+          "layer": "L1",
+          "zodiac": "狗",
+          "score": 0.6752
+        },
+        {
+          "id": "L1-08",
+          "name": "FNN(前馈下一比特)",
+          "layer": "L1",
+          "zodiac": "牛",
+          "score": 0.5329
+        },
+        {
+          "id": "L1-09",
+          "name": "TCN(下一比特)",
+          "layer": "L1",
+          "zodiac": "鼠",
+          "score": 0.5848
+        },
+        {
+          "id": "L1-10",
+          "name": "Transformer(短窗口基线)",
+          "layer": "L1",
+          "zodiac": "猴",
+          "score": 0.6181
+        },
+        {
+          "id": "L1-11",
+          "name": "LSTM(短/中程>99%)",
+          "layer": "L1",
+          "zodiac": "猴",
+          "score": 0.6562
+        },
+        {
+          "id": "L1-12",
+          "name": "Transformer(长程Rule90/62)",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.7103
+        },
+        {
+          "id": "L1-13",
+          "name": "BiLSTM-Transformer-GAN预测器",
+          "layer": "L1",
+          "zodiac": "龙",
+          "score": 0.7278
+        },
+        {
+          "id": "L1-14",
+          "name": "CNN-LSTM",
+          "layer": "L1",
+          "zodiac": "鼠",
+          "score": 0.8316
+        },
+        {
+          "id": "L1-15",
+          "name": "LSTM-CNN",
+          "layer": "L1",
+          "zodiac": "猴",
+          "score": 0.8552
+        },
+        {
+          "id": "L1-16",
+          "name": "CNN+LSTM并联",
+          "layer": "L1",
+          "zodiac": "牛",
+          "score": 0.7246
+        },
+        {
+          "id": "L1-17",
+          "name": "Parallel CNN-BiLSTM+Transformer",
+          "layer": "L1",
+          "zodiac": "兔",
+          "score": 0.8242
+        },
+        {
+          "id": "L1-18",
+          "name": "TCN-LSTM",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.6417
+        },
+        {
+          "id": "L1-19",
+          "name": "CNN-LSTM-attention",
+          "layer": "L1",
+          "zodiac": "兔",
+          "score": 0.9252
+        },
+        {
+          "id": "L1-20",
+          "name": "TCN-LSTM-attention",
+          "layer": "L1",
+          "zodiac": "鼠",
+          "score": 0.8929
+        },
+        {
+          "id": "L1-21",
+          "name": "GRU",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.6208
+        },
+        {
+          "id": "L1-22",
+          "name": "BiGRU",
+          "layer": "L1",
+          "zodiac": "猪",
+          "score": 0.5843
+        },
+        {
+          "id": "L1-23",
+          "name": "BiLSTM",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.6672
+        },
+        {
+          "id": "L1-24",
+          "name": "深度前馈(ANN LCG回归)",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.6242
+        },
+        {
+          "id": "L1-25",
+          "name": "ANN(RANDU回归)",
+          "layer": "L1",
+          "zodiac": "鸡",
+          "score": 0.6123
+        },
+        {
+          "id": "L1-26",
+          "name": "ANN(ZX81 LCG回归)",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.6113
+        },
+        {
+          "id": "L1-27",
+          "name": "Transformer-BiLSTM-cGAN",
+          "layer": "L1",
+          "zodiac": "龙",
+          "score": 0.7409
+        },
+        {
+          "id": "L1-28",
+          "name": "Mamba/SSM",
+          "layer": "L1",
+          "zodiac": "猪",
+          "score": 0.6779
+        },
+        {
+          "id": "L1-29",
+          "name": "Perceiver/Perceiver IO",
+          "layer": "L1",
+          "zodiac": "蛇",
+          "score": 0.5511
+        },
+        {
+          "id": "L1-30",
+          "name": "N-BEATS",
+          "layer": "L1",
+          "zodiac": "牛",
+          "score": 0.5632
+        },
+        {
+          "id": "L1-31",
+          "name": "N-HiTS",
+          "layer": "L1",
+          "zodiac": "牛",
+          "score": 0.5634
+        },
+        {
+          "id": "L1-32",
+          "name": "TimesNet",
+          "layer": "L1",
+          "zodiac": "龙",
+          "score": 0.6621
+        },
+        {
+          "id": "L1-33",
+          "name": "PatchTST",
+          "layer": "L1",
+          "zodiac": "龙",
+          "score": 0.6048
+        },
+        {
+          "id": "L1-34",
+          "name": "Crossformer",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 0.7479
+        },
+        {
+          "id": "L1-35",
+          "name": "iTransformer",
+          "layer": "L1",
+          "zodiac": "羊",
+          "score": 0.6066
+        },
+        {
+          "id": "L1-36",
+          "name": "DLinear",
+          "layer": "L1",
+          "zodiac": "牛",
+          "score": 0.9497
+        },
+        {
+          "id": "L1-37",
+          "name": "TiDE",
+          "layer": "L1",
+          "zodiac": "鼠",
+          "score": 0.6447
+        },
+        {
+          "id": "L1-38",
+          "name": "TFT",
+          "layer": "L1",
+          "zodiac": "鼠",
+          "score": 0.6547
+        },
+        {
+          "id": "L1-39",
+          "name": "Chronos(预训练时序LM)",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 1
+        },
+        {
+          "id": "L1-40",
+          "name": "TimeGPT/时序基础模型",
+          "layer": "L1",
+          "zodiac": "马",
+          "score": 1
+        },
+        {
+          "id": "L2-41",
+          "name": "AR(p)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6017
+        },
+        {
+          "id": "L2-42",
+          "name": "MA(q)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6017
+        },
+        {
+          "id": "L2-43",
+          "name": "ARMA(p,q)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6017
+        },
+        {
+          "id": "L2-44",
+          "name": "ARIMA(p,d,q)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": null
+        },
+        {
+          "id": "L2-45",
+          "name": "SARIMA",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": null
+        },
+        {
+          "id": "L2-46",
+          "name": "SARIMAX",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": null
+        },
+        {
+          "id": "L2-47",
+          "name": "ARFIMA",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6147
+        },
+        {
+          "id": "L2-48",
+          "name": "指数平滑",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9843
+        },
+        {
+          "id": "L2-49",
+          "name": "Holt线性趋势",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9843
+        },
+        {
+          "id": "L2-50",
+          "name": "Holt-Winters",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9843
+        },
+        {
+          "id": "L2-51",
+          "name": "ETS状态空间",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9843
+        },
+        {
+          "id": "L2-52",
+          "name": "Theta方法",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9843
+        },
+        {
+          "id": "L2-53",
+          "name": "TBATS",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9843
+        },
+        {
+          "id": "L2-54",
+          "name": "Kalman局部水平/趋势",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9958
+        },
+        {
+          "id": "L2-55",
+          "name": "Kalman-ARIMA混合",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9958
+        },
+        {
+          "id": "L2-56",
+          "name": "GARCH(p,q)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5748
+        },
+        {
+          "id": "L2-57",
+          "name": "EGARCH",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5748
+        },
+        {
+          "id": "L2-58",
+          "name": "GJR-GARCH",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5748
+        },
+        {
+          "id": "L2-59",
+          "name": "GARCH-M",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5748
+        },
+        {
+          "id": "L2-60",
+          "name": "ARCH(q)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5748
+        },
+        {
+          "id": "L2-61",
+          "name": "马尔可夫链(一阶)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5535
+        },
+        {
+          "id": "L2-62",
+          "name": "高阶马尔可夫",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5607
+        },
+        {
+          "id": "L2-63",
+          "name": "隐马尔可夫HMM",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.3669
+        },
+        {
+          "id": "L2-64",
+          "name": "马尔可夫-switching AR",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6017
+        },
+        {
+          "id": "L2-65",
+          "name": "泊松自回归PAR",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6017
+        },
+        {
+          "id": "L2-66",
+          "name": "INAR",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6017
+        },
+        {
+          "id": "L2-67",
+          "name": "二项AR(1)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5541
+        },
+        {
+          "id": "L2-68",
+          "name": "二项MA(q)",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.5816
+        },
+        {
+          "id": "L2-69",
+          "name": "二项ARMA",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6017
+        },
+        {
+          "id": "L2-70",
+          "name": "随机系数AR",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6017
+        },
+        {
+          "id": "L2-71",
+          "name": "分数高斯噪声fGn",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.6147
+        },
+        {
+          "id": "L2-72",
+          "name": "灰色GM(1,1)",
+          "layer": "L2",
+          "zodiac": "蛇",
+          "score": 1
+        },
+        {
+          "id": "L2-73",
+          "name": "灰色Verhulst",
+          "layer": "L2",
+          "zodiac": "蛇",
+          "score": 1
+        },
+        {
+          "id": "L2-74",
+          "name": "ACD",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9852
+        },
+        {
+          "id": "L2-75",
+          "name": "Hawkes过程",
+          "layer": "L2",
+          "zodiac": "马",
+          "score": 0.9852
+        },
+        {
+          "id": "L3-76",
+          "name": "线性回归",
+          "layer": "L3",
+          "zodiac": "牛",
+          "score": 0.9499
+        },
+        {
+          "id": "L3-77",
+          "name": "岭回归Ridge",
+          "layer": "L3",
+          "zodiac": "牛",
+          "score": 0.9497
+        },
+        {
+          "id": "L3-78",
+          "name": "LASSO",
+          "layer": "L3",
+          "zodiac": "牛",
+          "score": 0.9493
+        },
+        {
+          "id": "L3-79",
+          "name": "Elastic Net",
+          "layer": "L3",
+          "zodiac": "牛",
+          "score": 0.9495
+        },
+        {
+          "id": "L3-80",
+          "name": "决策树回归",
+          "layer": "L3",
+          "zodiac": "鸡",
+          "score": 0.6125
+        },
+        {
+          "id": "L3-81",
+          "name": "决策树分类",
+          "layer": "L3",
+          "zodiac": "牛",
+          "score": 0.597
+        },
+        {
+          "id": "L3-82",
+          "name": "随机森林回归",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5573
+        },
+        {
+          "id": "L3-83",
+          "name": "随机森林分类",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5428
+        },
+        {
+          "id": "L3-84",
+          "name": "梯度提升GBM",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.559
+        },
+        {
+          "id": "L3-85",
+          "name": "XGBoost",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5464
+        },
+        {
+          "id": "L3-86",
+          "name": "LightGBM",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5613
+        },
+        {
+          "id": "L3-87",
+          "name": "CatBoost",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5297
+        },
+        {
+          "id": "L3-88",
+          "name": "SVR(RBF核)",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5559
+        },
+        {
+          "id": "L3-89",
+          "name": "SVM分类",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5559
+        },
+        {
+          "id": "L3-90",
+          "name": "高斯过程回归GPR",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5559
+        },
+        {
+          "id": "L3-91",
+          "name": "GPR+SVR混合",
+          "layer": "L3",
+          "zodiac": "马",
+          "score": 0.5559
+        },
+        {
+          "id": "L3-92",
+          "name": "KNN回归",
+          "layer": "L3",
+          "zodiac": "猪",
+          "score": 0.75
+        },
+        {
+          "id": "L3-93",
+          "name": "KNN分类",
+          "layer": "L3",
+          "zodiac": "猪",
+          "score": 0.75
+        },
+        {
+          "id": "L3-94",
+          "name": "朴素贝叶斯NB",
+          "layer": "L3",
+          "zodiac": "牛",
+          "score": 0.9942
+        },
+        {
+          "id": "L3-95",
+          "name": "逻辑回归",
+          "layer": "L3",
+          "zodiac": "牛",
+          "score": 0.9942
+        },
+        {
+          "id": "L3-96",
+          "name": "线性判别LDA",
+          "layer": "L3",
+          "zodiac": "牛",
+          "score": 0.9498
+        },
+        {
+          "id": "L3-97",
+          "name": "偏最小二乘PLS",
+          "layer": "L3",
+          "zodiac": "牛",
+          "score": 0.9495
+        },
+        {
+          "id": "L4-98",
+          "name": "ESN储备池",
+          "layer": "L4",
+          "zodiac": "马",
+          "score": 0.554
+        },
+        {
+          "id": "L4-99",
+          "name": "小波-ESN(WESN)",
+          "layer": "L4",
+          "zodiac": "牛",
+          "score": 0.5995
+        },
+        {
+          "id": "L4-100",
+          "name": "RFCM储备池",
+          "layer": "L4",
+          "zodiac": "马",
+          "score": 0.6463
+        },
+        {
+          "id": "L4-101",
+          "name": "Logistic映射外推",
+          "layer": "L4",
+          "zodiac": "马",
+          "score": 0.5816
+        },
+        {
+          "id": "L4-102",
+          "name": "Tent映射外推",
+          "layer": "L4",
+          "zodiac": "马",
+          "score": 0.5816
+        }
+      ],
+      "openZodiacs": null,
+      "judged": false,
+      "modelHits": null,
+      "consensusHit": null
+    }
+  },
+  "stats": {
+    "perModel": {
+      "L1-01": {
+        "name": "Transformer(LCG未见模数)",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-02": {
+        "name": "Transformer(PCG)",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-03": {
+        "name": "Transformer(LCG m=2^32)",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-04": {
+        "name": "Transformer(深度临界d=3)",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-05": {
+        "name": "LSTM+BLSTM(LFSR/LCG)",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-06": {
+        "name": "FFT-ATT-LSTM",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-07": {
+        "name": "LSTM(纯序列下一比特)",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-08": {
+        "name": "FNN(前馈下一比特)",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-09": {
+        "name": "TCN(下一比特)",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-10": {
+        "name": "Transformer(短窗口基线)",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-11": {
+        "name": "LSTM(短/中程>99%)",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-12": {
+        "name": "Transformer(长程Rule90/62)",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-13": {
+        "name": "BiLSTM-Transformer-GAN预测器",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-14": {
+        "name": "CNN-LSTM",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-15": {
+        "name": "LSTM-CNN",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-16": {
+        "name": "CNN+LSTM并联",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-17": {
+        "name": "Parallel CNN-BiLSTM+Transformer",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-18": {
+        "name": "TCN-LSTM",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-19": {
+        "name": "CNN-LSTM-attention",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-20": {
+        "name": "TCN-LSTM-attention",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-21": {
+        "name": "GRU",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-22": {
+        "name": "BiGRU",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-23": {
+        "name": "BiLSTM",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-24": {
+        "name": "深度前馈(ANN LCG回归)",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-25": {
+        "name": "ANN(RANDU回归)",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-26": {
+        "name": "ANN(ZX81 LCG回归)",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-27": {
+        "name": "Transformer-BiLSTM-cGAN",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-28": {
+        "name": "Mamba/SSM",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-29": {
+        "name": "Perceiver/Perceiver IO",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-30": {
+        "name": "N-BEATS",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-31": {
+        "name": "N-HiTS",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-32": {
+        "name": "TimesNet",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-33": {
+        "name": "PatchTST",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-34": {
+        "name": "Crossformer",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-35": {
+        "name": "iTransformer",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-36": {
+        "name": "DLinear",
+        "layer": "L1",
+        "hits": 0,
+        "total": 1
+      },
+      "L1-37": {
+        "name": "TiDE",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-38": {
+        "name": "TFT",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-39": {
+        "name": "Chronos(预训练时序LM)",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L1-40": {
+        "name": "TimeGPT/时序基础模型",
+        "layer": "L1",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-41": {
+        "name": "AR(p)",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-42": {
+        "name": "MA(q)",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-43": {
+        "name": "ARMA(p,q)",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-44": {
+        "name": "ARIMA(p,d,q)",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-45": {
+        "name": "SARIMA",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-46": {
+        "name": "SARIMAX",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-47": {
+        "name": "ARFIMA",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-48": {
+        "name": "指数平滑",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-49": {
+        "name": "Holt线性趋势",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-50": {
+        "name": "Holt-Winters",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-51": {
+        "name": "ETS状态空间",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-52": {
+        "name": "Theta方法",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-53": {
+        "name": "TBATS",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-54": {
+        "name": "Kalman局部水平/趋势",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-55": {
+        "name": "Kalman-ARIMA混合",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-56": {
+        "name": "GARCH(p,q)",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-57": {
+        "name": "EGARCH",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-58": {
+        "name": "GJR-GARCH",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-59": {
+        "name": "GARCH-M",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-60": {
+        "name": "ARCH(q)",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-61": {
+        "name": "马尔可夫链(一阶)",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-62": {
+        "name": "高阶马尔可夫",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-63": {
+        "name": "隐马尔可夫HMM",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-64": {
+        "name": "马尔可夫-switching AR",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-65": {
+        "name": "泊松自回归PAR",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-66": {
+        "name": "INAR",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-67": {
+        "name": "二项AR(1)",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-68": {
+        "name": "二项MA(q)",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-69": {
+        "name": "二项ARMA",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-70": {
+        "name": "随机系数AR",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-71": {
+        "name": "分数高斯噪声fGn",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-72": {
+        "name": "灰色GM(1,1)",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-73": {
+        "name": "灰色Verhulst",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-74": {
+        "name": "ACD",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L2-75": {
+        "name": "Hawkes过程",
+        "layer": "L2",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-76": {
+        "name": "线性回归",
+        "layer": "L3",
+        "hits": 0,
+        "total": 1
+      },
+      "L3-77": {
+        "name": "岭回归Ridge",
+        "layer": "L3",
+        "hits": 0,
+        "total": 1
+      },
+      "L3-78": {
+        "name": "LASSO",
+        "layer": "L3",
+        "hits": 0,
+        "total": 1
+      },
+      "L3-79": {
+        "name": "Elastic Net",
+        "layer": "L3",
+        "hits": 0,
+        "total": 1
+      },
+      "L3-80": {
+        "name": "决策树回归",
+        "layer": "L3",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-81": {
+        "name": "决策树分类",
+        "layer": "L3",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-82": {
+        "name": "随机森林回归",
+        "layer": "L3",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-83": {
+        "name": "随机森林分类",
+        "layer": "L3",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-84": {
+        "name": "梯度提升GBM",
+        "layer": "L3",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-85": {
+        "name": "XGBoost",
+        "layer": "L3",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-86": {
+        "name": "LightGBM",
+        "layer": "L3",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-87": {
+        "name": "CatBoost",
+        "layer": "L3",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-88": {
+        "name": "SVR(RBF核)",
+        "layer": "L3",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-89": {
+        "name": "SVM分类",
+        "layer": "L3",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-90": {
+        "name": "高斯过程回归GPR",
+        "layer": "L3",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-91": {
+        "name": "GPR+SVR混合",
+        "layer": "L3",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-92": {
+        "name": "KNN回归",
+        "layer": "L3",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-93": {
+        "name": "KNN分类",
+        "layer": "L3",
+        "hits": 1,
+        "total": 1
+      },
+      "L3-94": {
+        "name": "朴素贝叶斯NB",
+        "layer": "L3",
+        "hits": 0,
+        "total": 1
+      },
+      "L3-95": {
+        "name": "逻辑回归",
+        "layer": "L3",
+        "hits": 0,
+        "total": 1
+      },
+      "L3-96": {
+        "name": "线性判别LDA",
+        "layer": "L3",
+        "hits": 0,
+        "total": 1
+      },
+      "L3-97": {
+        "name": "偏最小二乘PLS",
+        "layer": "L3",
+        "hits": 0,
+        "total": 1
+      },
+      "L4-98": {
+        "name": "ESN储备池",
+        "layer": "L4",
+        "hits": 0,
+        "total": 1
+      },
+      "L4-99": {
+        "name": "小波-ESN(WESN)",
+        "layer": "L4",
+        "hits": 1,
+        "total": 1
+      },
+      "L4-100": {
+        "name": "RFCM储备池",
+        "layer": "L4",
+        "hits": 1,
+        "total": 1
+      },
+      "L4-101": {
+        "name": "Logistic映射外推",
+        "layer": "L4",
+        "hits": 1,
+        "total": 1
+      },
+      "L4-102": {
+        "name": "Tent映射外推",
+        "layer": "L4",
+        "hits": 1,
+        "total": 1
+      }
+    },
+    "consensus": {
+      "hits": 1,
+      "total": 1
+    },
+    "periods": 2,
+    "judgedPeriods": 1
+  }
+}
