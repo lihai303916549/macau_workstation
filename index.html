@@ -230,6 +230,17 @@ h1 {
       </details>
       <div id="m100-note" style="font-size:11px;color:var(--text-muted);margin-top:12px;line-height:1.6;"></div>
     </div>
+<div class="card full-width" id="model100RecordCard">
+      <div class="card-title">📊 100模型委员会战绩（逐期记录）</div>
+      <div id="m100rec-kpi" style="font-size:13px;color:var(--accent);margin-bottom:10px;"></div>
+      <div id="m100rec-table" style="font-size:12px;margin-top:6px;overflow-x:auto;"></div>
+      <details style="margin-top:12px;">
+        <summary style="cursor:pointer;font-size:13px;color:var(--accent);">查看各模型累计命中率 ▾</summary>
+        <div id="m100rec-models" style="font-size:12px;line-height:1.7;margin-top:8px;column-count:2;column-gap:24px;"></div>
+      </details>
+      <div id="m100rec-note" style="font-size:11px;color:var(--text-muted);margin-top:12px;line-height:1.6;"></div>
+    </div>
+
   </div>
 </div>
 <script>
@@ -245,7 +256,7 @@ let compositeResult = null;
 const STD_2026 = {1:'马',2:'蛇',3:'龙',4:'兔',5:'虎',6:'牛',7:'鼠',8:'猪',9:'狗',10:'鸡',11:'猴',12:'羊'};
 function getNumberZodiac(num) { const key = num <= 12 ? num : ((num - 1) % 12) + 1; return STD_2026[key]; }
 function pad2(n) { return n < 10 ? '0' + n : '' + n; }
-const MODEL100_VOTE = {"generated_at":"2026-11-07","sourcePeriod":"2026310","predictFor":"2026311","nModels":102,"consensus":[{"zodiac":"马","votes":68},{"zodiac":"虎","votes":13},{"zodiac":"龙","votes":4},{"zodiac":"鸡","votes":4},{"zodiac":"蛇","votes":3},{"zodiac":"牛","votes":2},{"zodiac":"鼠","votes":2},{"zodiac":"狗","votes":2},{"zodiac":"猴","votes":2},{"zodiac":"兔","votes":1},{"zodiac":"羊","votes":1},{"zodiac":"猪","votes":0}],"workstation":{"zodiac":"蛇","top3":["蛇","鸡","猪"],"probs":{"蛇":0.37288326305853753,"鸡":0.31914253595118547,"猪":0.30797420099027684},"next_period":"2026311"},"picks":[{"id":"L1-01","name":"Transformer(LCG未见模数)","layer":"L1","zodiac":"鼠","score":0.5523},{"id":"L1-02","name":"Transformer(PCG)","layer":"L1","zodiac":"马","score":0.5744},{"id":"L1-03","name":"Transformer(LCG m=2^32)","layer":"L1","zodiac":"马","score":0.5709},{"id":"L1-04","name":"Transformer(深度临界d=3)","layer":"L1","zodiac":"兔","score":0.5991},{"id":"L1-05","name":"LSTM+BLSTM(LFSR/LCG)","layer":"L1","zodiac":"虎","score":0.587},{"id":"L1-06","name":"FFT-ATT-LSTM","layer":"L1","zodiac":"猴","score":0.8333},{"id":"L1-07","name":"LSTM(纯序列下一比特)","layer":"L1","zodiac":"鼠","score":0.5581},{"id":"L1-08","name":"FNN(前馈下一比特)","layer":"L1","zodiac":"马","score":0.6138},{"id":"L1-09","name":"TCN(下一比特)","layer":"L1","zodiac":"龙","score":0.5806},{"id":"L1-10","name":"Transformer(短窗口基线)","layer":"L1","zodiac":"马","score":0.6066},{"id":"L1-11","name":"LSTM(短/中程>99%)","layer":"L1","zodiac":"虎","score":0.7084},{"id":"L1-12","name":"Transformer(长程Rule90/62)","layer":"L1","zodiac":"牛","score":0.5844},{"id":"L1-13","name":"BiLSTM-Transformer-GAN预测器","layer":"L1","zodiac":"鸡","score":0.7189},{"id":"L1-14","name":"CNN-LSTM","layer":"L1","zodiac":"鸡","score":0.7191},{"id":"L1-15","name":"LSTM-CNN","layer":"L1","zodiac":"龙","score":0.8038},{"id":"L1-16","name":"CNN+LSTM并联","layer":"L1","zodiac":"狗","score":0.7351},{"id":"L1-17","name":"Parallel CNN-BiLSTM+Transformer","layer":"L1","zodiac":"蛇","score":0.7018},{"id":"L1-18","name":"TCN-LSTM","layer":"L1","zodiac":"虎","score":0.7058},{"id":"L1-19","name":"CNN-LSTM-attention","layer":"L1","zodiac":"狗","score":0.7643},{"id":"L1-20","name":"TCN-LSTM-attention","layer":"L1","zodiac":"马","score":0.7372},{"id":"L1-21","name":"GRU","layer":"L1","zodiac":"龙","score":0.584},{"id":"L1-22","name":"BiGRU","layer":"L1","zodiac":"马","score":0.5764},{"id":"L1-23","name":"BiLSTM","layer":"L1","zodiac":"马","score":0.6171},{"id":"L1-24","name":"深度前馈(ANN LCG回归)","layer":"L1","zodiac":"虎","score":0.6117},{"id":"L1-25","name":"ANN(RANDU回归)","layer":"L1","zodiac":"牛","score":0.6032},{"id":"L1-26","name":"ANN(ZX81 LCG回归)","layer":"L1","zodiac":"马","score":0.6073},{"id":"L1-27","name":"Transformer-BiLSTM-cGAN","layer":"L1","zodiac":"马","score":0.6743},{"id":"L1-28","name":"Mamba/SSM","layer":"L1","zodiac":"猴","score":0.5988},{"id":"L1-29","name":"Perceiver/Perceiver IO","layer":"L1","zodiac":"鸡","score":0.5562},{"id":"L1-30","name":"N-BEATS","layer":"L1","zodiac":"马","score":0.569},{"id":"L1-31","name":"N-HiTS","layer":"L1","zodiac":"马","score":0.5693},{"id":"L1-32","name":"TimesNet","layer":"L1","zodiac":"马","score":0.6583},{"id":"L1-33","name":"PatchTST","layer":"L1","zodiac":"龙","score":0.613},{"id":"L1-34","name":"Crossformer","layer":"L1","zodiac":"马","score":0.6119},{"id":"L1-35","name":"iTransformer","layer":"L1","zodiac":"鸡","score":0.7061},{"id":"L1-36","name":"DLinear","layer":"L1","zodiac":"虎","score":0.706},{"id":"L1-37","name":"TiDE","layer":"L1","zodiac":"马","score":0.584},{"id":"L1-38","name":"TFT","layer":"L1","zodiac":"马","score":0.6104},{"id":"L1-39","name":"Chronos(预训练时序LM)","layer":"L1","zodiac":"马","score":1},{"id":"L1-40","name":"TimeGPT/时序基础模型","layer":"L1","zodiac":"马","score":1},{"id":"L2-41","name":"AR(p)","layer":"L2","zodiac":"马","score":0.6007},{"id":"L2-42","name":"MA(q)","layer":"L2","zodiac":"马","score":0.6007},{"id":"L2-43","name":"ARMA(p,q)","layer":"L2","zodiac":"马","score":0.6007},{"id":"L2-44","name":"ARIMA(p,d,q)","layer":"L2","zodiac":"马","score":null},{"id":"L2-45","name":"SARIMA","layer":"L2","zodiac":"马","score":null},{"id":"L2-46","name":"SARIMAX","layer":"L2","zodiac":"马","score":null},{"id":"L2-47","name":"ARFIMA","layer":"L2","zodiac":"马","score":0.6134},{"id":"L2-48","name":"指数平滑","layer":"L2","zodiac":"马","score":0.9775},{"id":"L2-49","name":"Holt线性趋势","layer":"L2","zodiac":"马","score":0.9775},{"id":"L2-50","name":"Holt-Winters","layer":"L2","zodiac":"马","score":0.9775},{"id":"L2-51","name":"ETS状态空间","layer":"L2","zodiac":"马","score":0.9775},{"id":"L2-52","name":"Theta方法","layer":"L2","zodiac":"马","score":0.9775},{"id":"L2-53","name":"TBATS","layer":"L2","zodiac":"马","score":0.9775},{"id":"L2-54","name":"Kalman局部水平/趋势","layer":"L2","zodiac":"马","score":0.9931},{"id":"L2-55","name":"Kalman-ARIMA混合","layer":"L2","zodiac":"马","score":0.9931},{"id":"L2-56","name":"GARCH(p,q)","layer":"L2","zodiac":"马","score":0.5741},{"id":"L2-57","name":"EGARCH","layer":"L2","zodiac":"马","score":0.5741},{"id":"L2-58","name":"GJR-GARCH","layer":"L2","zodiac":"马","score":0.5741},{"id":"L2-59","name":"GARCH-M","layer":"L2","zodiac":"马","score":0.5741},{"id":"L2-60","name":"ARCH(q)","layer":"L2","zodiac":"马","score":0.5741},{"id":"L2-61","name":"马尔可夫链(一阶)","layer":"L2","zodiac":"马","score":0.553},{"id":"L2-62","name":"高阶马尔可夫","layer":"L2","zodiac":"马","score":0.5597},{"id":"L2-63","name":"隐马尔可夫HMM","layer":"L2","zodiac":"马","score":0.3668},{"id":"L2-64","name":"马尔可夫-switching AR","layer":"L2","zodiac":"马","score":0.6007},{"id":"L2-65","name":"泊松自回归PAR","layer":"L2","zodiac":"马","score":0.6007},{"id":"L2-66","name":"INAR","layer":"L2","zodiac":"马","score":0.6007},{"id":"L2-67","name":"二项AR(1)","layer":"L2","zodiac":"马","score":0.5535},{"id":"L2-68","name":"二项MA(q)","layer":"L2","zodiac":"马","score":0.5808},{"id":"L2-69","name":"二项ARMA","layer":"L2","zodiac":"马","score":0.6007},{"id":"L2-70","name":"随机系数AR","layer":"L2","zodiac":"马","score":0.6007},{"id":"L2-71","name":"分数高斯噪声fGn","layer":"L2","zodiac":"马","score":0.6134},{"id":"L2-72","name":"灰色GM(1,1)","layer":"L2","zodiac":"蛇","score":1},{"id":"L2-73","name":"灰色Verhulst","layer":"L2","zodiac":"蛇","score":1},{"id":"L2-74","name":"ACD","layer":"L2","zodiac":"马","score":0.9852},{"id":"L2-75","name":"Hawkes过程","layer":"L2","zodiac":"马","score":0.9852},{"id":"L3-76","name":"线性回归","layer":"L3","zodiac":"虎","score":0.7061},{"id":"L3-77","name":"岭回归Ridge","layer":"L3","zodiac":"虎","score":0.706},{"id":"L3-78","name":"LASSO","layer":"L3","zodiac":"虎","score":0.7058},{"id":"L3-79","name":"Elastic Net","layer":"L3","zodiac":"虎","score":0.7059},{"id":"L3-80","name":"决策树回归","layer":"L3","zodiac":"马","score":0.6027},{"id":"L3-81","name":"决策树分类","layer":"L3","zodiac":"马","score":0.6202},{"id":"L3-82","name":"随机森林回归","layer":"L3","zodiac":"马","score":0.5628},{"id":"L3-83","name":"随机森林分类","layer":"L3","zodiac":"马","score":0.5864},{"id":"L3-84","name":"梯度提升GBM","layer":"L3","zodiac":"马","score":0.5373},{"id":"L3-85","name":"XGBoost","layer":"L3","zodiac":"马","score":0.5154},{"id":"L3-86","name":"LightGBM","layer":"L3","zodiac":"马","score":0.5252},{"id":"L3-87","name":"CatBoost","layer":"L3","zodiac":"马","score":0.5299},{"id":"L3-88","name":"SVR(RBF核)","layer":"L3","zodiac":"马","score":0.5556},{"id":"L3-89","name":"SVM分类","layer":"L3","zodiac":"马","score":0.5556},{"id":"L3-90","name":"高斯过程回归GPR","layer":"L3","zodiac":"马","score":0.5556},{"id":"L3-91","name":"GPR+SVR混合","layer":"L3","zodiac":"马","score":0.5556},{"id":"L3-92","name":"KNN回归","layer":"L3","zodiac":"马","score":0.625},{"id":"L3-93","name":"KNN分类","layer":"L3","zodiac":"马","score":0.625},{"id":"L3-94","name":"朴素贝叶斯NB","layer":"L3","zodiac":"虎","score":0.9904},{"id":"L3-95","name":"逻辑回归","layer":"L3","zodiac":"虎","score":0.9904},{"id":"L3-96","name":"线性判别LDA","layer":"L3","zodiac":"虎","score":0.7061},{"id":"L3-97","name":"偏最小二乘PLS","layer":"L3","zodiac":"虎","score":0.7059},{"id":"L4-98","name":"ESN储备池","layer":"L4","zodiac":"羊","score":0.5254},{"id":"L4-99","name":"小波-ESN(WESN)","layer":"L4","zodiac":"马","score":0.5789},{"id":"L4-100","name":"RFCM储备池","layer":"L4","zodiac":"马","score":0.5981},{"id":"L4-101","name":"Logistic映射外推","layer":"L4","zodiac":"马","score":0.5808},{"id":"L4-102","name":"Tent映射外推","layer":"L4","zodiac":"马","score":0.5808}]};
+// MODEL100_VOTE removed: now fetched from ./committee/bt100_predict.json
 
 function extractYear(openTime) {
   if (!openTime) return 2026;
@@ -2194,14 +2205,29 @@ async function loadBetTable() {
 }
 
 
-function renderModel100() {
-  const V = MODEL100_VOTE;
-  if (!V) return;
+async function renderModel100() {
   const sub = document.getElementById('m100-sub');
-  if (sub) sub.textContent = '数据截至 ' + V.sourcePeriod + ' 期 · 预测对象 ' + V.predictFor + ' 期 · 共 ' + V.nModels + ' 个独立模型各自投票';
   const bars = document.getElementById('m100-bars');
+  const cmp = document.getElementById('m100-compare');
+  const list = document.getElementById('m100-list');
+  const note = document.getElementById('m100-note');
+  let V, ws = null;
+  try {
+    const [rp, rw] = await Promise.all([
+      fetch('./committee/bt100_predict.json', { cache: 'no-store' }),
+      fetch('./prediction_result.json', { cache: 'no-store' })
+    ]);
+    if (!rp.ok) throw new Error('委员会数据 HTTP ' + rp.status);
+    V = await rp.json();
+    if (rw.ok) { const wj = await rw.json(); ws = { zodiac: wj.zodiac, top3: wj.top3, probs: wj.probs }; }
+  } catch (e) {
+    if (sub) sub.textContent = '委员会投票数据加载失败（' + e.message + '），请稍后刷新。';
+    return;
+  }
+  if (!V || !V.consensus) return;
+  if (sub) sub.textContent = '数据截至 ' + V.sourcePeriod + ' 期 · 预测对象 ' + V.predictFor + ' 期 · 共 ' + V.nModels + ' 个独立模型各自投票';
   if (bars) {
-    const maxV = Math.max.apply(null, V.consensus.map(c => c.votes));
+    const maxV = Math.max.apply(null, V.consensus.map(function (c) { return c.votes; }));
     let bh = '';
     for (const c of V.consensus) {
       const w = (c.votes / maxV * 100);
@@ -2216,16 +2242,17 @@ function renderModel100() {
     }
     bars.innerHTML = bh;
   }
-  const cmp = document.getElementById('m100-compare');
   if (cmp) {
     const top = V.consensus[0];
-    const ws = V.workstation;
-    const wsProb = (ws.probs && ws.probs[ws.zodiac]) ? (ws.probs[ws.zodiac] * 100).toFixed(0) : '—';
-    cmp.innerHTML = '🤖 <b>工作站当前推荐</b>：<b style="color:var(--accent)">' + ws.zodiac + '</b>（top3 ' + ws.top3.join('·') + '，' + ws.zodiac + '概率约 ' + wsProb + '%）<br>'
-      + '🗳️ <b>100模型委员会共识</b>：<b style="color:var(--accent)">' + top.zodiac + '</b>（' + top.votes + '/' + V.nModels + ' 票，' + (top.votes / V.nModels * 100).toFixed(0) + '%）<br>'
-      + '两路结论<b>' + (ws.zodiac === top.zodiac ? '一致 ✅' : '不一致 ⚠️') + '</b>。';
+    if (ws && ws.zodiac) {
+      const wsProb = (ws.probs && ws.probs[ws.zodiac]) ? (ws.probs[ws.zodiac] * 100).toFixed(0) : '—';
+      cmp.innerHTML = '🤖 <b>工作站当前推荐</b>：<b style="color:var(--accent)">' + ws.zodiac + '</b>（top3 ' + (ws.top3 || []).join('·') + '，' + ws.zodiac + '概率约 ' + wsProb + '%）<br>'
+        + '🗳️ <b>100模型委员会共识</b>：<b style="color:var(--accent)">' + top.zodiac + '</b>（' + top.votes + '/' + V.nModels + ' 票，' + (top.votes / V.nModels * 100).toFixed(0) + '%）<br>'
+        + '两路结论<b>' + (ws.zodiac === top.zodiac ? '一致 ✅' : '不一致 ⚠️') + '</b>。';
+    } else {
+      cmp.innerHTML = '🗳️ <b>100模型委员会共识</b>：<b style="color:var(--accent)">' + top.zodiac + '</b>（' + top.votes + '/' + V.nModels + ' 票，' + (top.votes / V.nModels * 100).toFixed(0) + '%）';
+    }
   }
-  const list = document.getElementById('m100-list');
   if (list) {
     let lh = '';
     for (const p of V.picks) {
@@ -2234,8 +2261,67 @@ function renderModel100() {
     }
     list.innerHTML = lh;
   }
-  const note = document.getElementById('m100-note');
   if (note) note.textContent = '说明：102个模型为独立复刻的「深度学习/统计/混沌/储备池」预测器；walk-forward 回测显示平均去偏超额 -0.39pp、最佳 +7.2pp（未过 Bonferroni 显著线 10.8pp），即无模型真有预测力。委员会共识被「马有5个号」的结构红利主导，仅供对照，未接入生产投注。';
+}
+
+async function renderModel100Record() {
+  const kpi = document.getElementById('m100rec-kpi');
+  const tbl = document.getElementById('m100rec-table');
+  const models = document.getElementById('m100rec-models');
+  const note = document.getElementById('m100rec-note');
+  let R;
+  try {
+    const resp = await fetch('./committee/bt100_records.json', { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    R = await resp.json();
+  } catch (e) {
+    if (kpi) kpi.textContent = '委员会战绩数据加载失败（' + e.message + '），请稍后刷新。';
+    return;
+  }
+  const recs = R.records || {};
+  const keys = Object.keys(recs).sort();
+  const s = R.stats || {};
+  const jp = s.judgedPeriods || 0;
+  const consensusRate = jp > 0 ? (s.consensus.hits / s.consensus.total * 100).toFixed(1) : '—';
+  const per = s.perModel || {};
+  const arr = Object.keys(per).map(function (id) { return Object.assign({ id: id }, per[id]); }).filter(function (x) { return x.total > 0; });
+  const avgRate = arr.length ? (arr.reduce(function (a, b) { return a + b.hits / b.total; }, 0) / arr.length * 100).toFixed(1) : '—';
+  if (kpi) kpi.innerHTML = '已记录 ' + (s.periods || 0) + ' 期 · 已判定 ' + jp + ' 期 · 共识命中率 ' + consensusRate + '% · 平均模型命中率 ' + avgRate + '%';
+  if (tbl) {
+    let th = '<table style="border-collapse:collapse;width:100%;font-size:12px;">'
+      + '<tr style="color:var(--text-muted);text-align:left;">'
+      + '<th style="padding:3px 8px;border-bottom:1px solid var(--border);">期号</th>'
+      + '<th style="padding:3px 8px;border-bottom:1px solid var(--border);">共识生肖</th>'
+      + '<th style="padding:3px 8px;border-bottom:1px solid var(--border);">共识命中</th>'
+      + '<th style="padding:3px 8px;border-bottom:1px solid var(--border);">开奖平特肖</th>'
+      + '<th style="padding:3px 8px;border-bottom:1px solid var(--border);">模型命中</th>'
+      + '</tr>';
+    for (const k of keys) {
+      const r = recs[k];
+      const cons = r.consensus[0].zodiac;
+      const consHit = r.judged ? (r.consensusHit ? '✅' : '❌') : '⏳';
+      const openZ = r.openZodiacs ? r.openZodiacs.join(' ') : '—';
+      const mh = r.judged ? (Object.values(r.modelHits).filter(Boolean).length + '/' + r.picks.length) : '—';
+      th += '<tr>'
+        + '<td style="padding:3px 8px;border-bottom:1px solid var(--border);">' + k + '</td>'
+        + '<td style="padding:3px 8px;border-bottom:1px solid var(--border);">' + cons + '</td>'
+        + '<td style="padding:3px 8px;border-bottom:1px solid var(--border);">' + consHit + '</td>'
+        + '<td style="padding:3px 8px;border-bottom:1px solid var(--border);">' + openZ + '</td>'
+        + '<td style="padding:3px 8px;border-bottom:1px solid var(--border);">' + mh + '</td>'
+        + '</tr>';
+    }
+    th += '</table>';
+    tbl.innerHTML = th;
+  }
+  if (models) {
+    const sorted = arr.slice().sort(function (a, b) { return (b.hits / b.total) - (a.hits / a.total); });
+    let mh = '';
+    for (const x of sorted) {
+      mh += '<div>' + x.id + ' ' + (x.name || '').slice(0, 18) + ' → ' + (x.hits / x.total * 100).toFixed(0) + '% (' + x.hits + '/' + x.total + ')</div>';
+    }
+    models.innerHTML = mh;
+  }
+  if (note) note.textContent = '命中口径：模型所推生肖出现在该期7个球中即记命中（平特肖式）。共识命中率≈马在7球出现频率（理论约57%），因共识几乎恒推马，此高值属「马5个号」结构红利，非模型预测力；平均模型命中率已把各模型分散推的生肖一并计入。';
 }
 
 async function init() {
@@ -2268,7 +2354,8 @@ async function init() {
     setText('progress-text', '加载失败: ' + e.message);
     console.error(e);
   }
-  try { renderModel100(); } catch (e2) { console.warn('m100 render failed', e2); }
+  try { await renderModel100(); } catch (e2) { console.warn('m100 render failed', e2); }
+  try { await renderModel100Record(); } catch (e3) { console.warn('m100rec render failed', e3); }
 }
 
 // 「强制刷新」：清掉本地缓存并重新加载页面，用于拉取云端已部署的最新版本。
