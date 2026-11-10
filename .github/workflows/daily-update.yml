@@ -30,14 +30,6 @@ jobs:
       - name: 运行自动更新
         run: node update.js
 
-      # 委员会预测记录 + 开奖判定（100模型）：在数据更新后跑，把"下一期预测"存档、
-      # 并对已开奖期做命中判定，写入 committee/bt100_records.json 与 bt100_predict.json。
-      # 该步骤幂等：下一期已存档则跳过；某期已开奖则只补判定。失败不阻断主数据更新。
-      - name: 委员会预测记录 + 开奖判定
-        run: |
-          HTML_PATH=index.html BT_REC=committee/bt100_records.json BT_PRED=committee/bt100_predict.json node committee/bt_models100.js --predict
-        continue-on-error: true
-
       - name: 提交并推送
         run: |
           git config user.name "laoliu-bot"
