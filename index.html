@@ -216,29 +216,6 @@ h1 {
       </div>
       <div id="bet-summary" style="font-size:11px; color:var(--text-muted); margin-top:8px;"></div>
       <div style="margin-top:6px;"><button type="button" id="bet-restore" class="restore-btn" style="display:none;" onclick="restoreBet()"></button></div>
-    </div>    <div class="card full-width" id="model100Card">
-      <div class="card-title">🗳️ 100模型委员会投票（对比）</div>
-      <div id="m100-sub" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;"></div>
-      <div id="m100-compare" style="font-size:14px;line-height:1.9;margin-bottom:14px;"></div>
-            <div id="m100-warn" style="font-size:11px;color:#e8a33d;margin:10px 0;padding:7px 10px;background:rgba(232,163,61,0.10);border-left:3px solid #e8a33d;border-radius:4px;line-height:1.6;">
-        ⚠️ <b>关于「共识偏马」</b>：49个号码中马占5个（01·13·25·37·49），其余生肖各4个。本委员会共识偏高马，纯属「马号码多」的结构红利回声，并非模型预测信号，仅供对照、未接入生产投注。
-      </div>
-      <div id="m100-bars"></div>
-      <details style="margin-top:12px;">
-        <summary style="cursor:pointer;font-size:13px;color:var(--accent);">查看全部102个模型单独预测 ▾</summary>
-        <div id="m100-list" style="font-size:12px;line-height:1.7;margin-top:8px;column-count:2;column-gap:24px;"></div>
-      </details>
-      <div id="m100-note" style="font-size:11px;color:var(--text-muted);margin-top:12px;line-height:1.6;"></div>
-    </div>
-<div class="card full-width" id="model100RecordCard">
-      <div class="card-title">📊 100模型委员会战绩（逐期记录）</div>
-      <div id="m100rec-kpi" style="font-size:13px;color:var(--accent);margin-bottom:10px;"></div>
-      <div id="m100rec-table" style="font-size:12px;margin-top:6px;overflow-x:auto;"></div>
-      <details style="margin-top:12px;">
-        <summary style="cursor:pointer;font-size:13px;color:var(--accent);">查看各模型累计命中率 ▾</summary>
-        <div id="m100rec-models" style="font-size:12px;line-height:1.7;margin-top:8px;column-count:2;column-gap:24px;"></div>
-      </details>
-      <div id="m100rec-note" style="font-size:11px;color:var(--text-muted);margin-top:12px;line-height:1.6;"></div>
     </div>
 
   </div>
@@ -256,7 +233,6 @@ let compositeResult = null;
 const STD_2026 = {1:'马',2:'蛇',3:'龙',4:'兔',5:'虎',6:'牛',7:'鼠',8:'猪',9:'狗',10:'鸡',11:'猴',12:'羊'};
 function getNumberZodiac(num) { const key = num <= 12 ? num : ((num - 1) % 12) + 1; return STD_2026[key]; }
 function pad2(n) { return n < 10 ? '0' + n : '' + n; }
-// MODEL100_VOTE removed: now fetched from ./committee/bt100_predict.json
 
 function extractYear(openTime) {
   if (!openTime) return 2026;
@@ -2209,124 +2185,6 @@ async function loadBetTable() {
 }
 
 
-async function renderModel100() {
-  const sub = document.getElementById('m100-sub');
-  const bars = document.getElementById('m100-bars');
-  const cmp = document.getElementById('m100-compare');
-  const list = document.getElementById('m100-list');
-  const note = document.getElementById('m100-note');
-  let V, ws = null;
-  try {
-    const [rp, rw] = await Promise.all([
-      fetch('./committee/bt100_predict.json', { cache: 'no-store' }),
-      fetch('./prediction_result.json', { cache: 'no-store' })
-    ]);
-    if (!rp.ok) throw new Error('委员会数据 HTTP ' + rp.status);
-    V = await rp.json();
-    if (rw.ok) { const wj = await rw.json(); ws = { zodiac: wj.zodiac, top3: wj.top3, probs: wj.probs }; }
-  } catch (e) {
-    if (sub) sub.textContent = '委员会投票数据加载失败（' + e.message + '），请稍后刷新。';
-    return;
-  }
-  if (!V || !V.consensus) return;
-  if (sub) sub.textContent = '数据截至 ' + V.sourcePeriod + ' 期 · 预测对象 ' + V.predictFor + ' 期 · 共 ' + V.nModels + ' 个独立模型各自投票';
-  if (bars) {
-    const maxV = Math.max.apply(null, V.consensus.map(function (c) { return c.votes; }));
-    let bh = '';
-    for (const c of V.consensus) {
-      const w = (c.votes / maxV * 100);
-      const isTop = c === V.consensus[0];
-      const col = isTop ? 'var(--accent)' : 'var(--border)';
-      bh += '<div style="display:flex;align-items:center;margin:4px 0;font-size:13px;">'
-        + '<span style="width:34px;display:inline-block;">' + c.zodiac + '</span>'
-        + '<div style="flex:1;background:var(--card);border-radius:4px;height:18px;overflow:hidden;">'
-        + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + col + ';"></div></div>'
-        + '<span style="width:70px;text-align:right;color:var(--text-muted);">' + c.votes + '票 ' + (c.votes / V.nModels * 100).toFixed(0) + '%</span>'
-        + '</div>';
-    }
-    bars.innerHTML = bh;
-  }
-  if (cmp) {
-    const top = V.consensus[0];
-    if (ws && ws.zodiac) {
-      const wsProb = (ws.probs && ws.probs[ws.zodiac]) ? (ws.probs[ws.zodiac] * 100).toFixed(0) : '—';
-      cmp.innerHTML = '🤖 <b>工作站当前推荐</b>：<b style="color:var(--accent)">' + ws.zodiac + '</b>（top3 ' + (ws.top3 || []).join('·') + '，' + ws.zodiac + '概率约 ' + wsProb + '%）<br>'
-        + '🗳️ <b>100模型委员会共识</b>：<b style="color:var(--accent)">' + top.zodiac + '</b>（' + top.votes + '/' + V.nModels + ' 票，' + (top.votes / V.nModels * 100).toFixed(0) + '%）<br>'
-        + '两路结论<b>' + (ws.zodiac === top.zodiac ? '一致 ✅' : '不一致 ⚠️') + '</b>。';
-    } else {
-      cmp.innerHTML = '🗳️ <b>100模型委员会共识</b>：<b style="color:var(--accent)">' + top.zodiac + '</b>（' + top.votes + '/' + V.nModels + ' 票，' + (top.votes / V.nModels * 100).toFixed(0) + '%）';
-    }
-  }
-  if (list) {
-    let lh = '';
-    for (const p of V.picks) {
-      const mark = (p.zodiac === V.consensus[0].zodiac) ? ' ★' : '';
-      lh += '<div>' + p.id + ' ' + p.name + ' → <b>' + p.zodiac + '</b>' + mark + '</div>';
-    }
-    list.innerHTML = lh;
-  }
-  if (note) note.textContent = '说明：102个模型为独立复刻的「深度学习/统计/混沌/储备池」预测器；walk-forward 回测显示平均去偏超额 -0.39pp、最佳 +7.2pp（未过 Bonferroni 显著线 10.8pp），即无模型真有预测力。委员会共识被「马有5个号」的结构红利主导，仅供对照，未接入生产投注。';
-}
-
-async function renderModel100Record() {
-  const kpi = document.getElementById('m100rec-kpi');
-  const tbl = document.getElementById('m100rec-table');
-  const models = document.getElementById('m100rec-models');
-  const note = document.getElementById('m100rec-note');
-  let R;
-  try {
-    const resp = await fetch('./committee/bt100_records.json', { cache: 'no-store' });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    R = await resp.json();
-  } catch (e) {
-    if (kpi) kpi.textContent = '委员会战绩数据加载失败（' + e.message + '），请稍后刷新。';
-    return;
-  }
-  const recs = R.records || {};
-  const keys = Object.keys(recs).sort();
-  const s = R.stats || {};
-  const jp = s.judgedPeriods || 0;
-  const consensusRate = jp > 0 ? (s.consensus.hits / s.consensus.total * 100).toFixed(1) : '—';
-  const per = s.perModel || {};
-  const arr = Object.keys(per).map(function (id) { return Object.assign({ id: id }, per[id]); }).filter(function (x) { return x.total > 0; });
-  const avgRate = arr.length ? (arr.reduce(function (a, b) { return a + b.hits / b.total; }, 0) / arr.length * 100).toFixed(1) : '—';
-  if (kpi) kpi.innerHTML = '已记录 ' + (s.periods || 0) + ' 期 · 已判定 ' + jp + ' 期 · 共识命中率 ' + consensusRate + '% · 平均模型命中率 ' + avgRate + '%';
-  if (tbl) {
-    let th = '<table style="border-collapse:collapse;width:100%;font-size:12px;">'
-      + '<tr style="color:var(--text-muted);text-align:left;">'
-      + '<th style="padding:3px 8px;border-bottom:1px solid var(--border);">期号</th>'
-      + '<th style="padding:3px 8px;border-bottom:1px solid var(--border);">共识生肖</th>'
-      + '<th style="padding:3px 8px;border-bottom:1px solid var(--border);">共识命中</th>'
-      + '<th style="padding:3px 8px;border-bottom:1px solid var(--border);">开奖平特肖</th>'
-      + '<th style="padding:3px 8px;border-bottom:1px solid var(--border);">模型命中</th>'
-      + '</tr>';
-    for (const k of keys) {
-      const r = recs[k];
-      const cons = r.consensus[0].zodiac;
-      const consHit = r.judged ? (r.consensusHit ? '✅' : '❌') : '⏳';
-      const openZ = r.openZodiacs ? r.openZodiacs.join(' ') : '—';
-      const mh = r.judged ? (Object.values(r.modelHits).filter(Boolean).length + '/' + r.picks.length) : '—';
-      th += '<tr>'
-        + '<td style="padding:3px 8px;border-bottom:1px solid var(--border);">' + k + '</td>'
-        + '<td style="padding:3px 8px;border-bottom:1px solid var(--border);">' + cons + '</td>'
-        + '<td style="padding:3px 8px;border-bottom:1px solid var(--border);">' + consHit + '</td>'
-        + '<td style="padding:3px 8px;border-bottom:1px solid var(--border);">' + openZ + '</td>'
-        + '<td style="padding:3px 8px;border-bottom:1px solid var(--border);">' + mh + '</td>'
-        + '</tr>';
-    }
-    th += '</table>';
-    tbl.innerHTML = th;
-  }
-  if (models) {
-    const sorted = arr.slice().sort(function (a, b) { return (b.hits / b.total) - (a.hits / a.total); });
-    let mh = '';
-    for (const x of sorted) {
-      mh += '<div>' + x.id + ' ' + (x.name || '').slice(0, 18) + ' → ' + (x.hits / x.total * 100).toFixed(0) + '% (' + x.hits + '/' + x.total + ')</div>';
-    }
-    models.innerHTML = mh;
-  }
-  if (note) note.textContent = '命中口径：模型所推生肖出现在该期7个球中即记命中（平特肖式）。共识命中率≈马在7球出现频率（理论约57%），因共识几乎恒推马，此高值属「马5个号」结构红利，非模型预测力；平均模型命中率已把各模型分散推的生肖一并计入。';
-}
 
 async function init() {
   // 先渲染战绩（来自本地 EMBEDDED_RECORDS，不依赖网络）
@@ -2358,8 +2216,6 @@ async function init() {
     setText('progress-text', '加载失败: ' + e.message);
     console.error(e);
   }
-  try { await renderModel100(); } catch (e2) { console.warn('m100 render failed', e2); }
-  try { await renderModel100Record(); } catch (e3) { console.warn('m100rec render failed', e3); }
 }
 
 // 「强制刷新」：清掉本地缓存并重新加载页面，用于拉取云端已部署的最新版本。
