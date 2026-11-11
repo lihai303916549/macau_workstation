@@ -206,11 +206,11 @@ h1 {
       <div style="margin-top:6px;"><button type="button" id="rec-restore" class="restore-btn" style="display:none;" onclick="restoreRecords()"></button></div>
     </div>
     <div class="card full-width" data-page-node-id="betCard">
-      <div class="card-title">💰 平肖投注计划表（每晚自动对奖更新）</div>
+      <div class="card-title">💰 Pingxiao Touzhu Jihua Biao (Meiwang Zidong Duijiang Gengxin)</div>
       <div class="stats-row" id="bet-kpi" style="margin-bottom:12px;">加载中...</div>
       <div style="max-height:420px; overflow:auto; border:1px solid var(--border); border-radius:6px;">
         <table class="backtest-table bet-table" style="min-width:760px;">
-          <thead><tr><th>期数</th><th>生肖</th><th>赔率</th><th>押肖数</th><th>赢亏</th><th>单价投注额</th><th>盈亏</th><th>累计本金</th><th>下注</th><th>隐藏</th></tr></thead>
+          <thead><tr><th>Qishu</th><th>Shengxiao</th><th>Peilv</th><th>Yaxiaoshu</th><th>Yingkui</th><th>Danjia Touzhu E</th><th>Yingkui</th><th>Leiji Benjin</th><th>Xiazhu</th><th>Yincang</th></tr></thead>
           <tbody id="bet-body"></tbody>
         </table>
       </div>
@@ -2079,7 +2079,7 @@ function updateRestoreBtn(key) {
   if (!el) return;
   if (arr.length > 0) {
     el.style.display = '';
-    el.textContent = '↩ 恢复 ' + arr.length + ' 期';
+    el.textContent = (key === HIDE_KEY_BET) ? ('↩ Huifu ' + arr.length + ' Qi') : ('↩ 恢复 ' + arr.length + ' 期');
   } else {
     el.style.display = 'none';
     el.textContent = '';
@@ -2137,6 +2137,7 @@ async function renderRecords() {
 }
 
 // ===== 平肖投注计划表（桌面 Excel 每晚由 export_table.py 导出 bet_table.json）=====
+const BET_MAP = {'赢':'Ying','亏':'Kui','开奖中':'Kaijiang Zhong','未下注(共识不足)':'Wei Xia zhu (Gongyi Bu Zu)','未下注':'Wei Xia zhu','跳过':'Tiaoguo','猫':'Mao'};
 function fmtBetNum(v) {
   if (v === null || v === undefined || v === '') return '—';
   if (typeof v === 'number') return v.toLocaleString('zh-CN');
@@ -2153,16 +2154,16 @@ async function loadBetTable() {
     if (resp.ok) data = await resp.json();
   } catch (e) {}
   if (!data || !data.rows || !data.rows.length) {
-    if (kpiEl) kpiEl.textContent = '暂无数据（每晚21:40自动对奖后生成）';
+    if (kpiEl) kpiEl.textContent = 'Zanwu Shuju (Meiwang 21:40 Zidong Duijiang Hou Shengcheng)';
     return;
   }
   const k = data.kpi || {};
   const pnlColor = (k.total_pnl >= 0) ? 'var(--green)' : 'var(--red)';
   const kpis = [
-    ['交易笔数', k.trades, 'var(--accent)'],
-    ['平均中率', (k.win_rate === null || k.win_rate === undefined) ? '—' : (k.win_rate * 100).toFixed(1) + '%', 'var(--accent)'],
-    ['累计盈亏', (k.total_pnl >= 0 ? '+' : '') + Number(k.total_pnl).toLocaleString('zh-CN'), pnlColor],
-    ['现在总额', Number(k.current).toLocaleString('zh-CN'), 'var(--accent)'],
+    ['Jiaoyuan Bishu', k.trades, 'var(--accent)'],
+    ['Pingjun Zhonglv', (k.win_rate === null || k.win_rate === undefined) ? '—' : (k.win_rate * 100).toFixed(1) + '%', 'var(--accent)'],
+    ['Leiji Yingkui', (k.total_pnl >= 0 ? '+' : '') + Number(k.total_pnl).toLocaleString('zh-CN'), pnlColor],
+    ['Xianzai Zonge', Number(k.current).toLocaleString('zh-CN'), 'var(--accent)'],
   ];
   if (kpiEl) kpiEl.innerHTML = kpis.map(function (t) {
     return '<div class="stat-item"><span class="label">' + t[0] + '</span> <span class="value" style="color:' + t[2] + '">' + t[1] + '</span></div>';
@@ -2175,15 +2176,15 @@ async function loadBetTable() {
       '<td style="color:' + zc + '">' + (x.zodiac || '—') + '</td>' +
       '<td>' + (x.odds === null || x.odds === undefined ? '—' : Number(x.odds).toFixed(1)) + '</td>' +
       '<td>' + (x.count === null || x.count === undefined ? '—' : x.count) + '</td>' +
-      '<td style="color:' + rc + '; font-weight:600;">' + x.result + '</td>' +
+      '<td style="color:' + rc + '; font-weight:600;">' + (BET_MAP[x.result] || x.result) + '</td>' +
       '<td>' + fmtBetNum(x.stake) + '</td>' +
       '<td style="color:' + pc + '">' + (typeof x.pnl === 'number' ? (x.pnl >= 0 ? '+' : '') + x.pnl.toLocaleString('zh-CN') : x.pnl) + '</td>' +
       '<td style="font-weight:600;">' + fmtBetNum(x.capital) + '</td>' +
       '<td>' + (x.bet || '—') + '</td>' +
-      '<td><button type="button" class="hide-btn" title="隐藏本期" onclick="hideRowBtn(\'' + HIDE_KEY_BET + '\',' + x.period + ',this)">隐藏</button></td></tr>';
+      '<td><button type="button" class="hide-btn" title="Yincang Benqi" onclick="hideRowBtn(\'' + HIDE_KEY_BET + '\',' + x.period + ',this)">Yincang</button></td></tr>';
   }).join('');
   applyHiddenRows(HIDE_KEY_BET, body);
-  if (sumEl) sumEl.textContent = '数据更新于 ' + (data.generated_at || '—') + ' · 与桌面 Excel「彩票系统-平肖计算表」每晚同步 · 起始本金 ' + data.capital_start + ' / 风险值 ' + data.risk;
+  if (sumEl) sumEl.textContent = 'Shuju Gengxin Yu ' + (data.generated_at || '—') + ' · Yu Mian Shi Pingxiao Jisuan Biao Meiwan Tongbu · Qishi Benjin ' + data.capital_start + ' / Fengxian Zhi ' + data.risk;
 }
 
 
