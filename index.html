@@ -2325,14 +2325,9 @@ document.addEventListener('visibilitychange', function () {
 
 if ('serviceWorker' in navigator && navigator.serviceWorker) {
   const sw = navigator.serviceWorker;
-  if (typeof sw.addEventListener === 'function') {
-    let swReloading = false;
-    sw.addEventListener('controllerchange', () => {
-      if (swReloading) return;
-      swReloading = true;
-      location.reload();
-    });
-  }
+  // 注意：sw.js 对同源资源采用 network-first，永远返回云端最新文件，
+  // 因此这里【不要】再监听 controllerchange 去 location.reload()——
+  // 否则新访客首次访问会在输入密码后被强制刷新，密码门重新弹出、输入丢失。
   if (typeof sw.register === 'function') {
     sw.register('./sw.js').catch(() => {});
   }
