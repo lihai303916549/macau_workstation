@@ -620,7 +620,27 @@ function predictAll(hist){
   const cnt = new Array(12).fill(0);
   for(let n=1;n<=49;n++){ const z=zOf(n); zodiacScores[z]+=fused[n-1]; cnt[z]++; }
   for(let z=0;z<12;z++) zodiacScores[z]/=(cnt[z]||1);
-  return { fused: derive(fused), weights: W, zodiacScores };
+  // 5) v8.3：暴露各模型单独推断（v8 早期版本把 details/consensus 删了，但 update.js 与网页
+  //    仍在读这两个字段 → 会抛 "Cannot convert undefined or null to object" 并静默回退旧单算法。
+  //    这里只做「把内部已有的 raw 结果翻译成 derive 结构」，不改任何计算逻辑。）
+  const details = {};
+  for(const k of MODEL_KEYS) details[k] = derive(raw[k]);
+  return { fused: derive(fused), weights: W, zodiacScores, details, consensus: consensusOf(details) };
+}
+
+// 共识投票：数 8 个模型各自主推的生肖，看有几个投给了同一个
+const CONSENSUS_THRESHOLD = 3;   // 至少 3 个模型同意才算有共识
+function consensusOf(details){
+  const votes = {};
+  for(const k of Object.keys(details)){
+    const z = details[k] && details[k].zodiac;
+    if(z) votes[z] = (votes[z] || 0) + 1;
+  }
+  const total = Object.keys(details).length;
+  let top = null, count = 0;
+  for(const z of Object.keys(votes)) if(votes[z] > count){ top = z; count = votes[z]; }
+  const agree = count >= CONSENSUS_THRESHOLD;
+  return { agree, votes, top, count, total, action: agree ? 'bet' : 'hold', threshold: CONSENSUS_THRESHOLD };
 }
 
 // ================= 多属性命中判定 =================
@@ -680,4 +700,4 @@ function antiStreakBet(zodiacScores, recentBetZodiacs, maxConsec) {
   return primary;
 }
 
-module.exports = { predictAll, derive, judgeDraw, zOf, ZODIACS, MODEL_KEYS, antiStreakBet, betStreakFromArchive, ANTI_STREAK_MAX };
+module.exports = { predictAll, derive, judgeDraw, zOf, ZODIACS, MODEL_KEYS, antiStreakBet, betStreakFromArchive, ANTI_STREAK_MAX, consensusOf, CONSENSUS_THRESHOLD };
