@@ -1,8 +1,8 @@
 {
-  "total": 33,
-  "code_win": 18,
-  "zodiac_win": 19,
-  "six_win": 19,
+  "total": 34,
+  "code_win": 19,
+  "zodiac_win": 20,
+  "six_win": 20,
   "history": [
     {
       "period": "2026293",
@@ -1784,6 +1784,60 @@
       ],
       "code_hit": 1,
       "zodiac_hit": 0,
+      "six_hit": 1
+    },
+    {
+      "period": "2026326",
+      "actual_numbers": [
+        9,
+        16,
+        22,
+        36,
+        5,
+        47
+      ],
+      "actual_special": 23,
+      "pred_zodiac": "鸡",
+      "pred_top3": [
+        "鸡",
+        "马",
+        "蛇"
+      ],
+      "pred_six": [
+        "鸡",
+        "马",
+        "蛇",
+        "狗",
+        "鼠",
+        "猴"
+      ],
+      "pred_codes": [
+        1,
+        2,
+        3,
+        6,
+        8,
+        13,
+        14,
+        15,
+        19,
+        21,
+        22,
+        23,
+        26,
+        27,
+        31,
+        33,
+        34,
+        37,
+        40,
+        45,
+        46,
+        47,
+        49
+      ],
+      "code_hit": 1,
+      "zodiac_hit": 1,
       "six_hit": 1
     }
   ]
